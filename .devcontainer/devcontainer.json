@@ -1,0 +1,64 @@
+{
+  "name": "Dagster Development",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "dagster_dev",
+  "workspaceFolder": "/workspace/twitch-dp",
+  "shutdownAction": "stopCompose",
+  
+  // カスタマイズ設定
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "dagster-io.dagster",
+        "ms-python.black-formatter",
+        "ms-python.isort",
+        "ms-azuretools.vscode-docker"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.linting.enabled": true,
+        "python.linting.pylintEnabled": false,
+        "python.formatting.provider": "black",
+        "python.formatting.blackArgs": ["--line-length", "100"],
+        "editor.formatOnSave": true,
+        "files.exclude": {
+          "**/__pycache__": true,
+          "**/*.pyc": true
+        }
+      }
+    }
+  },
+
+  // コンテナ起動後のコマンド
+  "postCreateCommand": "cd dagster_project && uv sync --dev",
+  
+  // ポート転送設定（Dagster Web UI用）
+  "forwardPorts": [3000, 4000],
+  "portsAttributes": {
+    "3000": {
+      "label": "Dagster Web UI",
+      "onAutoForward": "notify"
+    },
+    "4000": {
+      "label": "Dagster gRPC Server",
+      "onAutoForward": "silent"
+    }
+  },
+
+  // 機能設定
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+
+  // リモートユーザー設定
+  "remoteUser": "vscode",
+  
+  // コンテナ内のPythonパス設定
+  "remoteEnv": {
+    "PATH": "/home/vscode/.local/bin:${containerEnv:PATH}"
+  }
+}
+

@@ -1,8 +1,13 @@
 jaffle_shop:
-
   target: dev
   outputs:
     dev:
-      type: duckdb
-      path: 'jaffle_shop.duckdb'
-      threads: 24
+      type: bigquery
+      method: service-account-json
+      keyfile: "{{ env_var('DBT_ENV_SECRET_BIGQUERY_KEYFILE', '') }}"
+      project: "{{ env_var('DBT_ENV_SECRET_BIGQUERY_PROJECT', 'local-dev') }}"
+      schema: "{{ env_var('DBT_ENV_SECRET_BIGQUERY_DATASET', 'jaffle_shop_dev') }}"
+      location: "{{ env_var('DBT_ENV_SECRET_BIGQUERY_LOCATION', 'asia-northeast1') }}"
+      threads: 1
+      priority: interactive
+      maximum_bytes_billed: 5368709120

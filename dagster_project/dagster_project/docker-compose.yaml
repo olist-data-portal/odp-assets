@@ -1,0 +1,28 @@
+services:
+  dagster_cloudrun_core:
+    platform: linux/amd64
+    build:
+      context: ../..
+      dockerfile: dagster_project/dagster_project/Dockerfile_dagster
+    ports:
+      - "3000:3000"
+    command: ["dagster-webserver", "-h", "0.0.0.0", "-p", "3000"]
+    depends_on:
+      - dagster_cloudrun_user_code
+    networks:
+      - dagster-network
+
+  dagster_cloudrun_user_code:
+    platform: linux/amd64
+    build:
+      context: ../..
+      dockerfile: dagster_project/dagster_project/Dockerfile_user_code
+    ports:
+      - "4000:4000"
+    networks:
+      - dagster-network
+
+networks:
+  dagster-network:
+    driver: bridge
+    name: dagster-network

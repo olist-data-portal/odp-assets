@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  dagster_dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dagster_dev_container
+    
+    # ワークスペースをマウント
+    volumes:
+      - ../..:/workspace:cached
+      - dagster-dev-packages:/usr/local/lib/python3.12/site-packages
+    
+    # 作業ディレクトリ
+    working_dir: /workspace/twitch-dp
+    
+    # 環境変数
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DAGSTER_HOME=/workspace/twitch-dp/dagster_project/dagster_project
+    
+    # ネットワーク設定（既存のDagsterサービスと通信可能にする）
+    networks:
+      - dagster-network
+    
+    # ポート転送（開発用）
+    ports:
+      - "3000:3000"
+      - "4000:4000"
+    
+    # コンテナを起動し続ける
+    command: sleep infinity
+    
+    # システムパッケージのインストール
+    # uvのインストールに必要なパッケージ
+    # コンテナ起動時にインストールされるため、ここではコメントアウト
+
+volumes:
+  dagster-dev-packages:
+
+networks:
+  dagster-network:
+    # 既存のネットワークがあれば使用、なければ作成
+    # Docker Composeは同じ名前のネットワークが既に存在する場合は自動的に使用します
+    name: dagster-network
+    driver: bridge
+

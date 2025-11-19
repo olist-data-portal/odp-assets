@@ -1,0 +1,62 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.env.*
+!.env.example
+!.env.template
+.env.gcp
+.env.local
+.env.production
+.env.development
+
+# Project specific
+dagster_project/dagster_project.egg-info/
+**/*.duckdb
+**/*.duckdb.wal
+
+# Dagster
+dagster_project/dagster_project/dagster.yaml  # 動的に生成されるファイル
+dagster_project/.tmp_dagster_home_*/
+dagster_project/dagster_project/history/
+dagster_project/dagster_project/logs/
+dagster_project/dagster_project/.nux/  # Dagster自動生成ディレクトリ
+
+# dbt
+jaffle_shop/target/
+*.log
+
+# Terraform
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+*.backup
+*.tfplan
+.terraform/
+

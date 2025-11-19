@@ -1,0 +1,7 @@
+# ローカル開発環境用の設定
+# このファイルは環境変数GCP_PROJECT_IDが設定されていない場合に使用されます
+# デフォルトのSQLiteストレージを使用します
+
+telemetry:
+  enabled: false
+

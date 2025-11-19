@@ -1,0 +1,35 @@
+# Resource name prefix
+prefix = "twitch-dp"
+
+# GCP Project Configuration
+project_id = "twitch-dp-478712"
+region = "asia-northeast1"
+
+# Network Configuration
+vpc_cidr = "10.0.0.0/16"
+public_subnet_cidrs = ["10.0.1.0/24", "10.0.2.0/24"]
+private_subnet_cidrs = ["10.0.3.0/24", "10.0.4.0/24"]
+
+# ALB Security Group Configuration (optional)
+prefix_list_ids = []
+
+# Dagster PostgreSQL Database Configuration
+# Note: Password is automatically generated and stored in Secret Manager
+dagster_postgres_db = "dagster"
+dagster_postgres_user = "dagster_user"
+
+# DBT BigQuery Configuration
+# Note: Service account and keyfile are automatically created and stored in Secret Manager
+dbt_env_secret_bigquery_project = "twitch-dp-478712"
+dbt_env_secret_bigquery_location = "asia-northeast1"
+
+# DBT Dataset Configuration
+# Environments and directories will be combined to create datasets like:
+# - dp_dev_staging, dp_dev_models
+# - dp_prod_staging, dp_prod_models
+dbt_environments = ["dev", "prd"]
+dbt_model_directories = ["staging", "models"]
+dataset_prefix = "dp"
+
+# Legacy dataset (optional, for backward compatibility)
+# dbt_env_secret_bigquery_dataset = "twitch_dp"

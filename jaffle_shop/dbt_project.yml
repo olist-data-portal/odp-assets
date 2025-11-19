@@ -19,6 +19,9 @@ clean-targets:
 
 require-dbt-version: [">=1.0.0", "<2.0.0"]
 
+vars:
+  dataset_prefix: "dp"
+
 seeds: 
   +docs:
     node_color: '#cd7f32'
@@ -26,8 +29,10 @@ seeds:
 models:
   jaffle_shop:
     +materialized: table
+    +schema: models
     staging:
       +materialized: view
+      +schema: staging
       +docs:
         node_color: 'silver'
     +docs:

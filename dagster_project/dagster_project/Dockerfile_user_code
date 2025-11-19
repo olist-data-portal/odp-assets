@@ -1,0 +1,32 @@
+FROM python:3.12-slim
+
+# Install system dependencies
+
+RUN apt-get update && apt-get upgrade -yqq
+RUN apt-get install git -y
+
+# Checkout and install dagster libraries needed to run the gRPC server
+# exposing your repository to dagster-webserver and dagster-daemon, and to load the DagsterInstance
+
+RUN pip install \
+    dagster \
+    dagster-postgres \
+    dagster-docker \
+    dagster-dbt \
+    dbt-bigquery
+
+# Add repository code
+
+WORKDIR /opt/dagster/app
+
+COPY dagster_project/ ./dagster_project/
+COPY jaffle_shop/ ./jaffle_shop/
+
+# Set environment variable
+ENV DAGSTER_ENV=AWS
+
+# Run dagster gRPC server on port 4000
+
+EXPOSE 4000
+
+CMD ["dagster", "code-server", "start", "-h", "0.0.0.0", "-p", "4000", "--module-name", "dagster_project.definitions"]
