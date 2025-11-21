@@ -46,10 +46,11 @@ dagster_project/dagster_project/dagster.yaml  # 動的に生成されるファ�
 dagster_project/.tmp_dagster_home_*/
 dagster_project/dagster_project/history/
 dagster_project/dagster_project/logs/
+dagster_project/dagster_project/storage/
 dagster_project/dagster_project/.nux/  # Dagster自動生成ディレクトリ
+dagster_project/dagster_project/schedules/
 
-# dbt
-jaffle_shop/target/
+# Logs
 *.log
 
 # Terraform
