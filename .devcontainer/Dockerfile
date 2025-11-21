@@ -15,15 +15,17 @@ RUN useradd -m -s /bin/bash vscode && \
     chown -R vscode:vscode /workspace
 
 # uvのインストール（システム全体で使用可能にするためrootでインストール）
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.cargo/bin:${PATH}"
+RUN curl -LsSf https://astral.sh/uv/install.sh -o /tmp/uv-install.sh && \
+    sh /tmp/uv-install.sh && \
+    mv /root/.local/bin/uv /usr/local/bin/uv && \
+    mv /root/.local/bin/uvx /usr/local/bin/uvx && \
+    chmod +x /usr/local/bin/uv /usr/local/bin/uvx && \
+    rm /tmp/uv-install.sh
 
 # vscodeユーザーに切り替え
 USER vscode
 WORKDIR /workspace
 
-# vscodeユーザーでもuvを使えるようにシンボリックリンクを作成
-RUN mkdir -p /home/vscode/.local/bin && \
-    ln -s /root/.cargo/bin/uv /home/vscode/.local/bin/uv || true
-ENV PATH="/home/vscode/.local/bin:${PATH}"
+# uvが使えることを確認
+ENV PATH="/usr/local/bin:/home/vscode/.local/bin:${PATH}"
 

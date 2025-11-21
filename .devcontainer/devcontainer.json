@@ -2,7 +2,7 @@
   "name": "Dagster Development",
   "dockerComposeFile": "docker-compose.yml",
   "service": "dagster_dev",
-  "workspaceFolder": "/workspace/twitch-dp",
+  "workspaceFolder": "/workspace/twitch-dp-assets",
   "shutdownAction": "stopCompose",
   
   // カスタマイズ設定
@@ -58,7 +58,10 @@
   
   // コンテナ内のPythonパス設定
   "remoteEnv": {
-    "PATH": "/home/vscode/.local/bin:${containerEnv:PATH}"
-  }
+    "PATH": "/usr/local/bin:/home/vscode/.local/bin:${containerEnv:PATH}"
+  },
+  
+  // コンテナ起動後のコマンド（エラーハンドリング付き）
+  "postCreateCommand": "cd dagster_project && (which uv && uv sync --dev || echo 'uv not found, trying alternative method') || echo 'postCreateCommand failed'"
 }
 

@@ -1,34 +1,16 @@
 [project]
 name = "dagster_project"
 version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
 requires-python = ">=3.10,<3.14"
 dependencies = [
     "dagster",
     "dagster-cloud",
-    "dagster-dbt",
-    "dbt-core<1.11",
-    "dbt-bigquery<1.11",
-]
-
-[project.optional-dependencies]
-dev = [
-    "dagster-webserver",
 ]
 
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools.package-data]
-dagster_project = ["dbt-project/**/*"]
-
 [tool.dagster]
 module_name = "dagster_project.definitions"
 code_location_name = "dagster_project"
-
-[dependency-groups]
-dev = [
-    "dagster-webserver>=1.12.2",
-]

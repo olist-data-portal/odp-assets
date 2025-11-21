@@ -13,12 +13,12 @@ services:
       - dagster-dev-packages:/usr/local/lib/python3.12/site-packages
     
     # 作業ディレクトリ
-    working_dir: /workspace/twitch-dp
+    working_dir: /workspace/twitch-dp-assets
     
     # 環境変数
     environment:
       - PYTHONUNBUFFERED=1
-      - DAGSTER_HOME=/workspace/twitch-dp/dagster_project/dagster_project
+      - DAGSTER_HOME=/workspace/twitch-dp-assets/dagster_project/dagster_project
     
     # ネットワーク設定（既存のDagsterサービスと通信可能にする）
     networks:

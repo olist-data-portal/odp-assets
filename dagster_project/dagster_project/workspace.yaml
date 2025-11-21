@@ -1,6 +1,6 @@
-# ローカル開発環境用の設定
-# python_moduleから直接読み込みます
-# GCP環境では workspace.yaml.production を使用します
 load_from:
-  - python_module: dagster_project.definitions
+  - grpc_server:
+      host: DAGSTER_USER_CODE_SERVICE_PLACEHOLDER
+      port: 443
+      location_name: "dagster_project"
 
