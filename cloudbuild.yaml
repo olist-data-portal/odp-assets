@@ -1,58 +1,38 @@
 steps:
-  # Dagsterイメージのビルドとプッシュ
+  # Dagsterイメージのビルド
   - name: 'gcr.io/cloud-builders/docker'
     id: 'build-dagster'
-    entrypoint: 'bash'
+    env:
+      - 'DOCKER_BUILDKIT=1'
     args:
-      - '-c'
-      - |
-        set -e
-        # 確実に既存のビルダーを削除（強制削除）
-        docker buildx rm -f builder || true
-        # 未使用のビルダーをクリーンアップ
-        docker buildx prune -f || true
-        # 新しいビルダーを作成し使用（force_deleteオプション付き）
-        docker buildx create --name builder --driver docker-container --use --driver-opt network=host --driver-opt force_delete=true || docker buildx use builder
-        # ビルダーを起動
-        docker buildx inspect --bootstrap
-        # イメージをビルド
-        docker buildx build \
-          --platform=linux/amd64 \
-          -f ./dagster_project/dagster_project/Dockerfile_dagster \
-          -t ${_ARTIFACT_REGISTRY}/dagster:latest \
-          -t ${_ARTIFACT_REGISTRY}/dagster:${_SHORT_SHA} \
-          --cache-from type=registry,ref=${_ARTIFACT_REGISTRY}/dagster:buildcache \
-          --cache-to type=registry,ref=${_ARTIFACT_REGISTRY}/dagster:buildcache,mode=max \
-          --load \
-          .
+      - 'build'
+      - '-f'
+      - './dagster_project/dagster_project/Dockerfile_dagster'
+      - '-t'
+      - '${_ARTIFACT_REGISTRY}/dagster:latest'
+      - '-t'
+      - '${_ARTIFACT_REGISTRY}/dagster:${_SHORT_SHA}'
+      - '--cache-from'
+      - '${_ARTIFACT_REGISTRY}/dagster:buildcache'
+      - '.'
     waitFor: ['-']
 
-  # User-codeイメージのビルドとプッシュ
+  # User-codeイメージのビルド
   - name: 'gcr.io/cloud-builders/docker'
     id: 'build-user-code'
-    entrypoint: 'bash'
+    env:
+      - 'DOCKER_BUILDKIT=1'
     args:
-      - '-c'
-      - |
-        set -e
-        # 確実に既存のビルダーを削除（強制削除）
-        docker buildx rm -f builder || true
-        # 未使用のビルダーをクリーンアップ
-        docker buildx prune -f || true
-        # 新しいビルダーを作成し使用（force_deleteオプション付き）
-        docker buildx create --name builder --driver docker-container --use --driver-opt network=host --driver-opt force_delete=true || docker buildx use builder
-        # ビルダーを起動
-        docker buildx inspect --bootstrap
-        # イメージをビルド
-        docker buildx build \
-          --platform=linux/amd64 \
-          -f ./dagster_project/dagster_project/Dockerfile_user_code \
-          -t ${_ARTIFACT_REGISTRY}/dagster-user-code:latest \
-          -t ${_ARTIFACT_REGISTRY}/dagster-user-code:${_SHORT_SHA} \
-          --cache-from type=registry,ref=${_ARTIFACT_REGISTRY}/dagster-user-code:buildcache \
-          --cache-to type=registry,ref=${_ARTIFACT_REGISTRY}/dagster-user-code:buildcache,mode=max \
-          --load \
-          .
+      - 'build'
+      - '-f'
+      - './dagster_project/dagster_project/Dockerfile_user_code'
+      - '-t'
+      - '${_ARTIFACT_REGISTRY}/dagster-user-code:latest'
+      - '-t'
+      - '${_ARTIFACT_REGISTRY}/dagster-user-code:${_SHORT_SHA}'
+      - '--cache-from'
+      - '${_ARTIFACT_REGISTRY}/dagster-user-code:buildcache'
+      - '.'
     waitFor: ['-']
 
   # イメージのプッシュ
