@@ -34,6 +34,12 @@ jobs:
       - name: Terraform Init
         run: terraform init
 
+      - name: Import existing resources (if needed)
+        continue-on-error: true
+        run: |
+          terraform import google_service_account.data_pipeline projects/olist-data-portal/serviceAccounts/odp-data-pipeline@olist-data-portal.iam.gserviceaccount.com || true
+          terraform import google_storage_bucket.data_lake odp-data-lake || true
+
       - name: Terraform Plan
         run: terraform plan -no-color
 
