@@ -1,4 +1,4 @@
-# Twitch Data Pipeline Assets
+# Olist Data Pipeline Assets
 
 DagsterでオーケストレーションするデータパイプラインのアプリケーションをdbtとPythonで作成します。
 
@@ -33,6 +33,11 @@ uv run dagster dev -w dagster_project/workspace.yaml
 
 Web UI: http://localhost:3000
 
+## プロジェクト情報
+
+- **GCPプロジェクトID**: `olist-data-portal`
+- **リソースPREFIX**: `odp`
+
 ## インフラとの関係
 
 **注意**: Dagsterのインフラ（GKE、Cloud SQL、サービスアカウント等）のデプロイはインフラリポジトリで行います。このアプリケーションリポジトリでは、以下のみを管理します：
@@ -40,4 +45,55 @@ Web UI: http://localhost:3000
 - Dagsterのアセット定義（Python）
 - dbtプロジェクト（dbtモデル定義）
 - Dockerイメージのビルド設定
+- Kubernetes DeploymentとJobの定義
+
+## Kubernetesデプロイ
+
+### 初回デプロイ
+
+GKEクラスタに接続してDeploymentを作成します：
+
+```bash
+# GKEクラスタに接続
+gcloud container clusters get-credentials odp-dagster-cluster \
+  --region asia-northeast1 \
+  --project olist-data-portal
+
+# Deploymentを作成
+kubectl apply -f deployments/webserver.yaml
+kubectl apply -f deployments/daemon.yaml
+kubectl apply -f deployments/user-code.yaml
+```
+
+### イメージ更新
+
+Dockerイメージが更新されたら、以下のコマンドでDeploymentのイメージを更新します（インフラデプロイ不要）：
+
+```bash
+# イメージを更新
+kubectl set image deployment/dagster-web \
+  webserver=asia-northeast1-docker.pkg.dev/olist-data-portal/odp-dagster/dagster:latest \
+  -n odp-dagster
+
+kubectl set image deployment/dagster-daemon \
+  daemon=asia-northeast1-docker.pkg.dev/olist-data-portal/odp-dagster/dagster:latest \
+  -n odp-dagster
+
+kubectl set image deployment/dagster-user-code \
+  user-code=asia-northeast1-docker.pkg.dev/olist-data-portal/odp-dagster/dagster-user-code:latest \
+  -n odp-dagster
+```
+
+### デプロイ済みリソースの確認
+
+```bash
+# Deploymentの状態を確認
+kubectl get deployments -n odp-dagster
+
+# Podの状態を確認
+kubectl get pods -n odp-dagster
+
+# ログの確認
+kubectl logs -f deployment/dagster-web -n odp-dagster
+```
 

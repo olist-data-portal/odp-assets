@@ -29,3 +29,4 @@ alwaysApply: true
 - Dagsterのアセット定義（Python）
 - dbtプロジェクト（dbtモデル定義）
 - Dockerイメージのビルド設定（CI/CDで自動的にビルド・プッシュされる）
+- Kubernetes DeploymentとJobの定義（`deployments/`ディレクトリ配下）

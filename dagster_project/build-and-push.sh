@@ -2,8 +2,8 @@
 set -e
 
 # prd環境用Dockerイメージビルド・プッシュスクリプト
-PROJECT_ID="twitch-dp-478712"
-PREFIX="twitch-dp"
+PROJECT_ID="olist-data-portal"
+PREFIX="odp-"
 REGION="asia-northeast1"
 
 gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
@@ -16,7 +16,7 @@ docker buildx build \
   --no-cache \
   --push \
   -f dagster_project/dagster_project/Dockerfile_dagster \
-  -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/dagster/dagster:latest \
+  -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/odp-dagster/dagster:latest \
   .
 
 docker buildx build \
@@ -24,6 +24,6 @@ docker buildx build \
   --no-cache \
   --push \
   -f dagster_project/dagster_project/Dockerfile_user_code \
-  -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/dagster/dagster-user-code:latest \
+  -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/odp-dagster/dagster-user-code:latest \
   .
 

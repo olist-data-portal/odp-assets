@@ -27,7 +27,7 @@ alwaysApply: true
   - `int_`: 中間モデル
   - `wh_`: ウェアハウスモデル
   - `mart_`: マートモデル
-- **データセット名**: `tdp-{env}-{ディレクトリ}`形式を使用（例: `tdp-local-staging`, `tdp-dev-mart`, `tdp-prd-mart`）
+- **データセット名**: `odp-{env}-{ディレクトリ}`形式を使用（例: `odp-local-staging`, `odp-dev-mart`, `odp-prd-mart`）
 
 ## 環境ごとの設定
 

@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dagster-daemon
+  namespace: odp-dagster
+  labels:
+    app: dagster-daemon
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dagster-daemon
+  template:
+    metadata:
+      labels:
+        app: dagster-daemon
+    spec:
+      serviceAccountName: dagster-task-ksa
+      containers:
+      - name: cloud-sql-proxy
+        image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.8.0
+        args:
+        - "--address=0.0.0.0"
+        - "--port=5432"
+        - "olist-data-portal:asia-northeast1:odp-cloudsql"
+        securityContext:
+          runAsNonRoot: true
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            cpu: 100m
+            memory: 256Mi
+      - name: daemon
+        image: asia-northeast1-docker.pkg.dev/olist-data-portal/odp-dagster/dagster:latest
+        command: ["dagster-daemon", "run"]
+        env:
+        - name: DAGSTER_POSTGRES_USER
+          value: "dagster"
+        - name: DAGSTER_POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: odp-database-password
+              key: password
+        - name: DAGSTER_POSTGRES_HOST
+          value: "localhost"
+        - name: DAGSTER_POSTGRES_DB
+          value: "dagster"
+        - name: DAGSTER_USER_CODE_SERVICE
+          value: "odp-dagster-user-code:4000"
+        volumeMounts:
+        - name: workspace
+          mountPath: /opt/dagster/dagster_home/workspace.yaml
+          subPath: workspace.yaml
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      volumes:
+      - name: workspace
+        configMap:
+          name: odp-workspace
+
