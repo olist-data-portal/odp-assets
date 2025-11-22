@@ -1,0 +1,55 @@
+# .gcloudignore file for Cloud Build
+# This file ensures that necessary files are included in the build context
+
+# Include all necessary files for Docker builds
+!dagster_project/dagster_project/dagster.yaml
+!dagster_project/dagster_project/workspace.yaml
+!dagster_project/dagster_project/startup.sh
+!dagster_project/dagster_project/__init__.py
+!dagster_project/dagster_project/definitions.py
+!dagster_project/dagster_project/assets/
+!dagster_project/dagster_project/Dockerfile_dagster
+!dagster_project/dagster_project/Dockerfile_user_code
+
+# Exclude unnecessary files
+.venv/
+venv/
+env/
+ENV/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+.env
+.env.*
+*.log
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+*.backup
+*.tfplan
+.terraform/
+.git/
+.github/
+*.duckdb
+*.duckdb.wal
+dagster_project/dagster_project/history/
+dagster_project/dagster_project/logs/
+dagster_project/dagster_project/storage/
+dagster_project/dagster_project/.nux/
+dagster_project/dagster_project/schedules/
+dagster_project/.tmp_dagster_home_*/
+
