@@ -45,7 +45,9 @@ steps:
       - '-c'
       - |
         docker push ${_ARTIFACT_REGISTRY}/dagster:latest
-        docker push ${_ARTIFACT_REGISTRY}/dagster:${SHORT_SHA}
+        if [ -n "${SHORT_SHA}" ] && [ "${SHORT_SHA}" != "latest" ]; then
+          docker push ${_ARTIFACT_REGISTRY}/dagster:${SHORT_SHA}
+        fi
     waitFor: ['build-dagster']
 
   - name: 'gcr.io/cloud-builders/docker'
@@ -55,7 +57,9 @@ steps:
       - '-c'
       - |
         docker push ${_ARTIFACT_REGISTRY}/dagster-user-code:latest
-        docker push ${_ARTIFACT_REGISTRY}/dagster-user-code:${SHORT_SHA}
+        if [ -n "${SHORT_SHA}" ] && [ "${SHORT_SHA}" != "latest" ]; then
+          docker push ${_ARTIFACT_REGISTRY}/dagster-user-code:${SHORT_SHA}
+        fi
     waitFor: ['build-user-code']
 
   # GKEクラスタへの接続
@@ -100,6 +104,7 @@ substitutions:
   _REGION: 'asia-northeast1'
   _CLUSTER_NAME: 'odp-dagster-cluster'
   _NAMESPACE: 'odp-dagster'
+  SHORT_SHA: 'latest'
 
 options:
   machineType: 'E2_HIGHCPU_8'
