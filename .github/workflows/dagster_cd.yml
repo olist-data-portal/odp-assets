@@ -28,7 +28,6 @@ jobs:
         uses: google-github-actions/setup-gcloud@v1
         with:
           project_id: ${{ env.PROJECT_ID }}
-          install_components: 'gke-gcloud-auth-plugin'
 
       - name: Authenticate to Google Cloud
         env:
@@ -39,6 +38,11 @@ jobs:
           gcloud auth activate-service-account --key-file=/tmp/gcp-key.json
           gcloud config set project ${{ env.PROJECT_ID }}
           gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Install gke-gcloud-auth-plugin
+        run: |
+          gcloud components install gke-gcloud-auth-plugin --quiet || true
+          gcloud components update gke-gcloud-auth-plugin --quiet || true
 
       - name: Check changed paths
         id: changed_paths
