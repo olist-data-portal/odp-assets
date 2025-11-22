@@ -7,10 +7,12 @@ steps:
       - '-c'
       - |
         set -e
-        # 確実に既存のビルダーを削除
-        docker buildx rm builder || true
-        # 新しいビルダーを作成し使用
-        docker buildx create --name builder --driver docker-container --use --driver-opt network=host
+        # 確実に既存のビルダーを削除（強制削除）
+        docker buildx rm -f builder || true
+        # 未使用のビルダーをクリーンアップ
+        docker buildx prune -f || true
+        # 新しいビルダーを作成し使用（force_deleteオプション付き）
+        docker buildx create --name builder --driver docker-container --use --driver-opt network=host --driver-opt force_delete=true || docker buildx use builder
         # ビルダーを起動
         docker buildx inspect --bootstrap
         # イメージをビルド
@@ -33,10 +35,12 @@ steps:
       - '-c'
       - |
         set -e
-        # 確実に既存のビルダーを削除
-        docker buildx rm builder || true
-        # 新しいビルダーを作成し使用
-        docker buildx create --name builder --driver docker-container --use --driver-opt network=host
+        # 確実に既存のビルダーを削除（強制削除）
+        docker buildx rm -f builder || true
+        # 未使用のビルダーをクリーンアップ
+        docker buildx prune -f || true
+        # 新しいビルダーを作成し使用（force_deleteオプション付き）
+        docker buildx create --name builder --driver docker-container --use --driver-opt network=host --driver-opt force_delete=true || docker buildx use builder
         # ビルダーを起動
         docker buildx inspect --bootstrap
         # イメージをビルド
