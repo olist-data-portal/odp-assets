@@ -3,7 +3,8 @@ FROM --platform=linux/amd64 python:3.12-slim
 RUN pip install --no-cache-dir \
     dagster \
     kaggle \
-    google-cloud-storage
+    google-cloud-storage \
+    python-dateutil
 
 WORKDIR /opt/dagster/app
 
