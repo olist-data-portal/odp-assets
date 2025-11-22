@@ -1,0 +1,41 @@
+name: Terraform CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'gcp/**'
+
+jobs:
+  terraform-apply:
+    runs-on: ubuntu-latest
+    environment: production
+    defaults:
+      run:
+        working-directory: ./gcp
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+
+      - name: Terraform Init
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
+        run: terraform init
+
+      - name: Terraform Plan
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
+        run: terraform plan -no-color
+
+      - name: Terraform Apply
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
+        run: terraform apply -auto-approve -no-color
+

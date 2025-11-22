@@ -46,6 +46,22 @@ Web UI: http://localhost:3000
 - dbtプロジェクト（dbtモデル定義）
 - Dockerイメージのビルド設定
 - Kubernetes DeploymentとJobの定義
+- データパイプライン用GCPリソース（Terraformで管理）
+
+## CI/CD
+
+GitHub Actionsを使用してCI/CDを自動化しています。
+
+### ワークフロー
+
+- **CI**: `feature-`ブランチから`main`へのPull Requestが作成・更新されたときに実行
+  - コードのフォーマットチェック、バリデーション、テストを実行
+  - Terraformのフォーマットチェック、バリデーション、プランを実行
+- **CD（dev環境）**: `feature-`ブランチがリモートにプッシュされたときに実行
+  - Dockerイメージのビルドとプッシュを自動的に実行
+- **CD（prd環境）**: `main`ブランチにマージされたときに実行
+  - Dockerイメージのビルドとプッシュを自動的に実行
+  - Terraformのプランと適用を実行（`environment: production`により承認が必要）
 
 ## Kubernetesデプロイ
 

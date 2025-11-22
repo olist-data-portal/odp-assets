@@ -2,7 +2,7 @@
   "name": "Dagster Development",
   "dockerComposeFile": "docker-compose.yml",
   "service": "dagster_dev",
-  "workspaceFolder": "/workspace/twitch-dp-assets",
+  "workspaceFolder": "/workspace/odp-assets",
   "shutdownAction": "stopCompose",
   
   // カスタマイズ設定

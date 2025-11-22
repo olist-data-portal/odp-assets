@@ -1,0 +1,89 @@
+---
+alwaysApply: true
+---
+
+# SQL開発規約
+
+## ガイドライン
+
+- **ドキュメント参照**: BigQuery標準SQL公式ドキュメントを優先
+- **フォーマッター**: `sqlfmt`を使用（dbtプロジェクトで統一）
+- **データウェアハウス**: BigQueryを使用
+
+## 実装規約
+
+- **CTEの使用**: 複雑なクエリではCTE（Common Table Expression）を使用して可読性を向上
+- **サブクエリの禁止**: サブクエリは使用しない（CTEを使用すること）
+- **JOINの順序**: テーブル結合の順序を論理的に整理（依存関係の明確化）
+- **フィルタリング**: WHERE句でフィルタリングを早めに適用（パフォーマンス向上）
+- **SELECT句**: SELECT句では必要なカラムのみを指定（`SELECT *`は避ける）
+
+## 命名規約
+
+- **テーブル名**: スネークケースを使用（例: `stg_api_data`, `int_user_events`, `mart_user_summary`）
+- **カラム名**: スネークケースを使用（例: `user_id`, `created_at`, `order_total`）
+- **CTE名**: 意味のある名前を使用（例: `user_orders`, `daily_revenue`）
+  - **Import CTE**: データソースの取り込みには`import_`プレフィックスを使用（例: `import_users`, `import_orders`）
+  - **Functional CTE**: 結合や変換を意味単位で分けたCTEには機能を表す名前を使用（例: `user_orders`, `daily_revenue`）
+  - **Final CTE**: 最終的なCTEには`final`という名前を使用
+- **日付・時間型の命名**: 日付や時間型のカラムには接尾辞を統一して使用
+  - `_date`: DATE型（例: `created_date`, `updated_date`）
+  - `_datetime`: 現地時間のDATETIME型（例: `created_datetime`, `updated_datetime`）
+  - `_at`: UTC時間のTIMESTAMP型（例: `created_at`, `updated_at`）
+
+## スタイル規約
+
+- **キーワード**: SQLキーワードは大文字で記述（例: `SELECT`, `FROM`, `WHERE`, `JOIN`）
+- **インデント**: 2スペースでインデント（`sqlfmt`で自動フォーマット）
+- **カンマ**: カンマは先行（trailing comma）スタイルを使用
+- **改行**: 各句（SELECT, FROM, WHERE, JOIN等）は新しい行で開始
+
+## クエリ構造
+
+- **SELECT句の順序**: SELECT, FROM, WHERE, GROUP BY, HAVING, ORDER BY, LIMITの順序で記述
+- **JOIN**: INNER JOIN、LEFT JOIN等は明示的に記述（`,`による結合は避ける）
+- **結合時のエイリアス**: 結合時はエイリアスを利用せず、CTE名を直接使用する（例: `JOIN import_orders ON import_users.user_id = import_orders.user_id`）
+- **条件**: WHERE句の条件は論理的にグループ化（AND, ORを適切に括弧で囲む）
+- **CTE構造**: クエリは以下の構造で記述
+  - **Import CTE**: データソースの取り込みのみを行う（変換等は行わない、必要なデータのみ取り込み）
+    - `import_`プレフィックスを使用（例: `import_users`, `import_orders`）
+    - 必要なカラムのみをSELECT（変換や結合は行わない）
+  - **Functional CTE**: 結合や変換を意味単位で分ける
+    - 各CTEは1つの意味単位（例: ユーザーと注文の結合、日次集計）
+  - **Final CTE**: 最終的な結果を定義
+    - `final`という名前を使用
+    - Final CTE内ではカラムを全て列挙する（`SELECT *`は使用しない）
+    - 結合は行わない（結合はFunctional CTEで完了させる）
+- **クエリの終了**: ファイルの最後は`SELECT * FROM final`で終わる（Final CTEを参照する最終的なSELECT文）
+
+## パフォーマンス
+
+- **パーティション**: パーティションテーブルではパーティションカラムでフィルタリング
+- **クラスタリング**: クラスタリングカラムを活用したクエリを記述
+- **集約関数**: 必要な集約関数のみを使用（過剰な集約は避ける）
+
+## セキュリティ
+
+- **データアクセス**: 必要最小限のデータのみにアクセス
+- **機密情報**: 機密情報（個人情報等）をクエリ結果に含めない
+- **SQLインジェクション**: 動的SQLを避け、パラメータ化クエリを使用
+
+## 品質
+
+- **明確なクエリ**: 複雑なロジックはコメントで説明
+- **NULL値の処理**: NULL値の扱いを明示的に定義（基本的に`IFNULL`を利用）
+- **型変換**: 型変換は必ず`SAFE_CAST`を利用
+
+## 簡潔性
+
+- **必要最小限の機能**: 過剰な複雑さを避ける
+- **コメント**: 説明不要なコメントは削除する（コード自体を明確にする）
+- **重複**: 同じロジックの重複を避ける（CTEやビューで共通化）
+
+## BigQuery特有の推奨事項
+
+- **標準SQL**: BigQuery標準SQLを使用（レガシーSQLは避ける）
+- **日付関数**: BigQueryの日付関数を使用（例: `DATE()`, `CURRENT_DATE()`）
+- **文字列関数**: BigQueryの文字列関数を使用（例: `STARTS_WITH()`, `CONTAINS_SUBSTR()`）
+- **配列操作**: BigQueryの配列関数を活用（例: `ARRAY_AGG()`, `UNNEST()`）
+- **JSON操作**: BigQueryのJSON関数を使用（例: `JSON_EXTRACT()`, `JSON_EXTRACT_SCALAR()`）

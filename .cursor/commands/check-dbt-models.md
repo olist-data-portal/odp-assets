@@ -8,8 +8,9 @@ dbtモデルのコードがプロジェクトのルールに準拠している�
 
 - `.cursor/rules/00-overview.mdc` - プロジェクト概要
 - `.cursor/rules/02-dbt-conventions.mdc` - dbt開発規約
-- `.cursor/rules/03-python-conventions.mdc` - Python開発規約
-- `.cursor/rules/04-important-notices.mdc` - 重要な注意事項
+- `.cursor/rules/03-sql-conventions.mdc` - SQL開発規約
+- `.cursor/rules/04-python-conventions.mdc` - Python開発規約
+- `.cursor/rules/07-important-notices.mdc` - 重要な注意事項
 
 ## チェックポイント
 

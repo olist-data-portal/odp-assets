@@ -8,8 +8,8 @@ APIからGCSへのデータ取得ステップのコードがプロジェクト�
 
 - `.cursor/rules/00-overview.mdc` - プロジェクト概要
 - `.cursor/rules/01-dagster-conventions.mdc` - Dagster開発規約
-- `.cursor/rules/03-python-conventions.mdc` - Python開発規約
-- `.cursor/rules/04-important-notices.mdc` - 重要な注意事項
+- `.cursor/rules/04-python-conventions.mdc` - Python開発規約
+- `.cursor/rules/07-important-notices.mdc` - 重要な注意事項
 
 ## チェックポイント
 

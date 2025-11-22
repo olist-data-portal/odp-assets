@@ -29,7 +29,14 @@ alwaysApply: true
 ## インフラとの関係
 
 - **インフラリポジトリとは別**: Dagsterのインフラ（GKE、Cloud SQL、ServiceAccount、ConfigMap、Secret、Service、Ingress等）のデプロイはインフラリポジトリで行う
-- **このリポジトリで管理するもの**: Dagsterアセット定義、dbtモデル、Dockerイメージのビルド設定、Kubernetes DeploymentとJobの定義
+- **このリポジトリで管理するもの**: Dagsterアセット定義、dbtモデル、Dockerイメージのビルド設定、Kubernetes DeploymentとJobの定義、データパイプライン用GCPリソース（サービスアカウント、GCSバケット、BigQueryデータセット）
+
+## TerraformでのGCPリソース管理
+
+- **Terraform管理**: データパイプライン用のGCPリソース（サービスアカウント、GCSバケット、BigQueryデータセット）は`gcp/`ディレクトリでTerraformで管理
+- **状態ファイル**: `.tfstate`ファイルはgit管理に含めない（`.gitignore`で除外）
+- **機密情報**: `terraform.tfvars`ファイルはgit管理に含めない（機密情報を含む可能性がある）
+- **環境間でのリソース共有**: データレイク（GCS）とデータウェアハウス（BigQuery）は環境間で共通のリソースを使用（Terraformで定義）
 
 ## Kubernetes DeploymentとJobの管理
 

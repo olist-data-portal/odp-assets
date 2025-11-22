@@ -1,10 +1,9 @@
 from dagster import Definitions
 
-# Basic Dagster definitions
-# Add your assets, resources, and schedules here
+from dagster_project.assets import kaggle_to_gcs
 
 defs = Definitions(
-    assets=[],
+    assets=[kaggle_to_gcs],
     schedules=[],
     resources={},
 )
