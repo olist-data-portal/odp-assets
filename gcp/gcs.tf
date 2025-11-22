@@ -4,6 +4,8 @@ resource "google_storage_bucket" "data_lake" {
   uniform_bucket_level_access = true
   force_destroy               = false
 
+  labels = local.common_labels
+
   versioning {
     enabled = true
   }
