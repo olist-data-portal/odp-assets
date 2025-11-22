@@ -24,18 +24,19 @@ jobs:
         with:
           terraform_version: 1.6.0
 
-      - name: Terraform Init
+      - name: Authenticate to Google Cloud
         env:
           GOOGLE_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
+        run: |
+          echo "$GOOGLE_CREDENTIALS" > /tmp/gcp-key.json
+          echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-key.json" >> $GITHUB_ENV
+
+      - name: Terraform Init
         run: terraform init
 
       - name: Terraform Plan
-        env:
-          GOOGLE_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
         run: terraform plan -no-color
 
       - name: Terraform Apply
-        env:
-          GOOGLE_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
         run: terraform apply -auto-approve -no-color
 
