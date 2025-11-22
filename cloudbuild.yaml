@@ -75,6 +75,9 @@ steps:
   # Deploymentのイメージ更新
   - name: 'gcr.io/cloud-builders/kubectl'
     id: 'update-dagster-deployments'
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=${_REGION}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}'
     args:
       - 'set'
       - 'image'
@@ -88,6 +91,9 @@ steps:
 
   - name: 'gcr.io/cloud-builders/kubectl'
     id: 'update-user-code'
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=${_REGION}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}'
     args:
       - 'set'
       - 'image'
