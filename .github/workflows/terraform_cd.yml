@@ -34,11 +34,26 @@ jobs:
       - name: Terraform Init
         run: terraform init
 
-      - name: Import existing resources (if needed)
+      - name: Check existing resources and import if needed
         continue-on-error: true
         run: |
-          terraform import google_service_account.data_pipeline projects/olist-data-portal/serviceAccounts/odp-data-pipeline@olist-data-portal.iam.gserviceaccount.com || true
-          terraform import google_storage_bucket.data_lake odp-data-lake || true
+          echo "Checking if resources need to be imported..."
+          
+          # Check if service account exists and import if needed
+          if terraform state show google_service_account.data_pipeline 2>/dev/null; then
+            echo "Service account already in state"
+          else
+            echo "Importing service account..."
+            terraform import google_service_account.data_pipeline projects/olist-data-portal/serviceAccounts/odp-data-pipeline@olist-data-portal.iam.gserviceaccount.com || echo "Service account import failed or resource does not exist"
+          fi
+          
+          # Check if GCS bucket exists and import if needed
+          if terraform state show google_storage_bucket.data_lake 2>/dev/null; then
+            echo "GCS bucket already in state"
+          else
+            echo "Importing GCS bucket..."
+            terraform import google_storage_bucket.data_lake odp-data-lake || echo "GCS bucket import failed or resource does not exist"
+          fi
 
       - name: Terraform Plan
         run: terraform plan -no-color
