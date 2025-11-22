@@ -72,9 +72,38 @@ steps:
       - '--project=${PROJECT_ID}'
     waitFor: ['push-dagster', 'push-user-code']
 
+  # Namespaceの作成（存在しない場合）
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: 'create-namespace'
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=${_REGION}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        kubectl create namespace ${_NAMESPACE} || true
+    waitFor: ['get-credentials']
+
+  # Deploymentの初期デプロイ（存在しない場合に作成）
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: 'apply-deployments'
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=${_REGION}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}'
+    args:
+      - 'apply'
+      - '-f'
+      - 'deployments/webserver.yaml'
+      - '-f'
+      - 'deployments/daemon.yaml'
+      - '-f'
+      - 'deployments/user-code.yaml'
+    waitFor: ['create-namespace']
+
   # Deploymentのイメージ更新
   - name: 'gcr.io/cloud-builders/kubectl'
-    id: 'update-dagster-deployments'
+    id: 'update-dagster-web'
     env:
       - 'CLOUDSDK_COMPUTE_REGION=${_REGION}'
       - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}'
@@ -82,12 +111,24 @@ steps:
       - 'set'
       - 'image'
       - 'deployment/dagster-web'
-      - 'deployment/dagster-daemon'
       - 'webserver=${_ARTIFACT_REGISTRY}/dagster:${_SHORT_SHA}'
+      - '-n'
+      - '${_NAMESPACE}'
+    waitFor: ['apply-deployments']
+
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: 'update-dagster-daemon'
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=${_REGION}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}'
+    args:
+      - 'set'
+      - 'image'
+      - 'deployment/dagster-daemon'
       - 'daemon=${_ARTIFACT_REGISTRY}/dagster:${_SHORT_SHA}'
       - '-n'
       - '${_NAMESPACE}'
-    waitFor: ['get-credentials']
+    waitFor: ['apply-deployments']
 
   - name: 'gcr.io/cloud-builders/kubectl'
     id: 'update-user-code'
@@ -101,7 +142,7 @@ steps:
       - 'user-code=${_ARTIFACT_REGISTRY}/dagster-user-code:${_SHORT_SHA}'
       - '-n'
       - '${_NAMESPACE}'
-    waitFor: ['get-credentials']
+    waitFor: ['apply-deployments']
 
 substitutions:
   _ARTIFACT_REGISTRY: 'asia-northeast1-docker.pkg.dev/olist-data-portal/odp-dagster'
