@@ -4,7 +4,8 @@ RUN pip install --no-cache-dir \
     dagster \
     dagster-webserver \
     dagster-cloud \
-    dagster-postgres
+    dagster-postgres \
+    python-dateutil
 
 ENV DAGSTER_HOME=/opt/dagster/dagster_home/
 
