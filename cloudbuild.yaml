@@ -99,6 +99,9 @@ steps:
       - 'deployments/daemon.yaml'
       - '-f'
       - 'deployments/user-code.yaml'
+      - '-n'
+      - '${_NAMESPACE}'
+      - '--validate=false'
     waitFor: ['create-namespace']
 
   # Deploymentのイメージ更新
