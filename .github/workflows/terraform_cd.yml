@@ -11,6 +11,8 @@ jobs:
   terraform-apply:
     runs-on: ubuntu-latest
     environment: production
+    outputs:
+      completed: ${{ job.status == 'success' }}
     defaults:
       run:
         working-directory: ./gcp

@@ -9,6 +9,10 @@ on:
       - 'dagster_project/**'
       - 'dbt/**'
   workflow_dispatch:
+  workflow_run:
+    workflows: ["Terraform CD"]
+    types:
+      - completed
 
 env:
   PROJECT_ID: olist-data-portal
@@ -16,14 +20,119 @@ env:
   ARTIFACT_REGISTRY: asia-northeast1-docker.pkg.dev/olist-data-portal/odp-dagster
 
 jobs:
-  deploy:
+  kaggle-api-to-gcs:
     runs-on: ubuntu-latest
     environment: production
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
+      (github.event_name == 'push' && (contains(github.event.head_commit.modified, 'dagster_project/dagster_project/assets/kaggle_api_to_gcs.py') || contains(github.event.head_commit.added, 'dagster_project/dagster_project/assets/kaggle_api_to_gcs.py')))
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-    
+
+      - name: Setup Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Authenticate to Google Cloud
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
+        run: |
+          echo "$GOOGLE_CREDENTIALS" > /tmp/gcp-key.json
+          echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-key.json" >> $GITHUB_ENV
+          gcloud auth activate-service-account --key-file=/tmp/gcp-key.json
+          gcloud config set project ${{ env.PROJECT_ID }}
+
+      - name: Install gke-gcloud-auth-plugin
+        run: |
+          gcloud components install gke-gcloud-auth-plugin --quiet || true
+          gcloud components update gke-gcloud-auth-plugin --quiet || true
+
+      - name: Get GKE credentials
+        run: |
+          gcloud container clusters get-credentials odp-dagster-cluster \
+            --region ${{ env.REGION }} \
+            --project ${{ env.PROJECT_ID }}
+
+      - name: Run Kaggle API to GCS asset
+        env:
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+        run: |
+          kubectl run kaggle-api-to-gcs-$(date +%s) \
+            --image=${{ env.ARTIFACT_REGISTRY }}/dagster-user-code:latest \
+            --restart=Never \
+            --namespace=odp-dagster \
+            --env="KAGGLE_USERNAME=${{ secrets.KAGGLE_USERNAME }}" \
+            --env="KAGGLE_KEY=${{ secrets.KAGGLE_KEY }}" \
+            --command -- dagster asset materialize -m dagster_project.definitions -s kaggle_to_gcs || true
+
+    outputs:
+      completed: ${{ job.status == 'success' || job.status == 'skipped' }}
+
+  gcs-to-bigquery-dbt:
+    runs-on: ubuntu-latest
+    environment: production
+    needs: [kaggle-api-to-gcs]
+    if: |
+      (needs.kaggle-api-to-gcs.result == 'success' || needs.kaggle-api-to-gcs.result == 'skipped') &&
+      (github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
+      (github.event_name == 'push' && (contains(github.event.head_commit.modified, 'dagster_project/dagster_project/assets/') || contains(github.event.head_commit.modified, 'dbt/') || contains(github.event.head_commit.added, 'dagster_project/dagster_project/assets/') || contains(github.event.head_commit.added, 'dbt/'))))
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Authenticate to Google Cloud
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
+        run: |
+          echo "$GOOGLE_CREDENTIALS" > /tmp/gcp-key.json
+          echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-key.json" >> $GITHUB_ENV
+          gcloud auth activate-service-account --key-file=/tmp/gcp-key.json
+          gcloud config set project ${{ env.PROJECT_ID }}
+
+      - name: Install gke-gcloud-auth-plugin
+        run: |
+          gcloud components install gke-gcloud-auth-plugin --quiet || true
+          gcloud components update gke-gcloud-auth-plugin --quiet || true
+
+      - name: Get GKE credentials
+        run: |
+          gcloud container clusters get-credentials odp-dagster-cluster \
+            --region ${{ env.REGION }} \
+            --project ${{ env.PROJECT_ID }}
+
+      - name: Run GCS to BigQuery and dbt assets
+        run: |
+          kubectl run gcs-to-bigquery-dbt-$(date +%s) \
+            --image=${{ env.ARTIFACT_REGISTRY }}/dagster-user-code:latest \
+            --restart=Never \
+            --namespace=odp-dagster \
+            --command -- dagster asset materialize -m dagster_project.definitions -s gcs_to_bigquery -s dbt_models || true
+
+    outputs:
+      completed: ${{ job.status == 'success' || job.status == 'skipped' }}
+
+  docker-deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    needs: [gcs-to-bigquery-dbt]
+    if: needs.gcs-to-bigquery-dbt.result == 'success' || needs.gcs-to-bigquery-dbt.result == 'skipped'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Setup Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v1
         with:
@@ -47,12 +156,10 @@ jobs:
       - name: Check changed paths
         id: changed_paths
         run: |
-          # 手動実行の場合は全てを実行
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "should_build=true" >> $GITHUB_OUTPUT
             echo "should_deploy=true" >> $GITHUB_OUTPUT
           else
-            # 自動実行の場合は変更を検知
             if git diff --name-only HEAD~1 | grep -qE "^(dagster_project/|dbt/)"; then
               echo "should_build=true" >> $GITHUB_OUTPUT
             else
@@ -82,4 +189,9 @@ jobs:
           kubectl apply -f deployments/webserver.yaml
           kubectl apply -f deployments/daemon.yaml
           kubectl apply -f deployments/user-code.yaml
+
+      - name: Skip message
+        if: steps.changed_paths.outputs.should_build == 'false' && steps.changed_paths.outputs.should_deploy == 'false'
+        run: |
+          echo "No changes detected in dagster_project/, dbt/, or deployments/. Skipping Docker image build and deployment."
 
