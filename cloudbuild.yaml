@@ -1,0 +1,126 @@
+steps:
+  # Dagsterイメージのビルドとプッシュ
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-dagster'
+    args:
+      - 'build'
+      - '--platform=linux/amd64'
+      - '-f'
+      - './dagster_project/dagster_project/Dockerfile_dagster'
+      - '-t'
+      - '${_ARTIFACT_REGISTRY}/dagster:latest'
+      - '-t'
+      - '${_ARTIFACT_REGISTRY}/dagster:${SHORT_SHA}'
+      - '--cache-from'
+      - '${_ARTIFACT_REGISTRY}/dagster:buildcache'
+      - '--cache-to'
+      - 'type=registry,ref=${_ARTIFACT_REGISTRY}/dagster:buildcache,mode=max'
+      - '.'
+    waitFor: ['-']
+
+  # User-codeイメージのビルドとプッシュ
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-user-code'
+    args:
+      - 'build'
+      - '--platform=linux/amd64'
+      - '-f'
+      - './dagster_project/dagster_project/Dockerfile_user_code'
+      - '-t'
+      - '${_ARTIFACT_REGISTRY}/dagster-user-code:latest'
+      - '-t'
+      - '${_ARTIFACT_REGISTRY}/dagster-user-code:${SHORT_SHA}'
+      - '--cache-from'
+      - '${_ARTIFACT_REGISTRY}/dagster-user-code:buildcache'
+      - '--cache-to'
+      - 'type=registry,ref=${_ARTIFACT_REGISTRY}/dagster-user-code:buildcache,mode=max'
+      - '.'
+    waitFor: ['-']
+
+  # イメージのプッシュ
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-dagster'
+    args:
+      - 'push'
+      - '${_ARTIFACT_REGISTRY}/dagster:latest'
+    waitFor: ['build-dagster']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-dagster-sha'
+    args:
+      - 'push'
+      - '${_ARTIFACT_REGISTRY}/dagster:${SHORT_SHA}'
+    waitFor: ['build-dagster']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-user-code'
+    args:
+      - 'push'
+      - '${_ARTIFACT_REGISTRY}/dagster-user-code:latest'
+    waitFor: ['build-user-code']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-user-code-sha'
+    args:
+      - 'push'
+      - '${_ARTIFACT_REGISTRY}/dagster-user-code:${SHORT_SHA}'
+    waitFor: ['build-user-code']
+
+  # GKEクラスタへの接続
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'get-credentials'
+    args:
+      - 'container'
+      - 'clusters'
+      - 'get-credentials'
+      - '${_CLUSTER_NAME}'
+      - '--region=${_REGION}'
+      - '--project=${PROJECT_ID}'
+    waitFor: ['push-dagster', 'push-user-code']
+
+  # Deploymentのイメージ更新
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: 'update-deployments'
+    args:
+      - 'set'
+      - 'image'
+      - 'deployment/dagster-web'
+      - 'webserver=${_ARTIFACT_REGISTRY}/dagster:latest'
+      - '-n'
+      - '${_NAMESPACE}'
+    waitFor: ['get-credentials']
+
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: 'update-daemon'
+    args:
+      - 'set'
+      - 'image'
+      - 'deployment/dagster-daemon'
+      - 'daemon=${_ARTIFACT_REGISTRY}/dagster:latest'
+      - '-n'
+      - '${_NAMESPACE}'
+    waitFor: ['get-credentials']
+
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: 'update-user-code'
+    args:
+      - 'set'
+      - 'image'
+      - 'deployment/dagster-user-code'
+      - 'user-code=${_ARTIFACT_REGISTRY}/dagster-user-code:latest'
+      - '-n'
+      - '${_NAMESPACE}'
+    waitFor: ['get-credentials']
+
+substitutions:
+  _ARTIFACT_REGISTRY: 'asia-northeast1-docker.pkg.dev/olist-data-portal/odp-dagster'
+  _REGION: 'asia-northeast1'
+  _CLUSTER_NAME: 'odp-dagster-cluster'
+  _NAMESPACE: 'odp-dagster'
+
+options:
+  machineType: 'E2_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: '1800s'
+
