@@ -69,7 +69,7 @@ jobs:
           fi
           gcloud builds submit \
             --config=cloudbuild.yaml \
-            --substitutions=_ARTIFACT_REGISTRY=${{ env.ARTIFACT_REGISTRY }},_REGION=${{ env.REGION }},_CLUSTER_NAME=odp-dagster-cluster,_NAMESPACE=odp-dagster,SHORT_SHA=${SHORT_SHA} \
+            --substitutions=_ARTIFACT_REGISTRY=${{ env.ARTIFACT_REGISTRY }},_REGION=${{ env.REGION }},_CLUSTER_NAME=odp-dagster-cluster,_NAMESPACE=odp-dagster,_SHORT_SHA=${SHORT_SHA} \
             --project=${{ env.PROJECT_ID }}
 
       - name: Deploy to Kubernetes
