@@ -40,30 +40,22 @@ steps:
   # イメージのプッシュ
   - name: 'gcr.io/cloud-builders/docker'
     id: 'push-dagster'
+    entrypoint: 'bash'
     args:
-      - 'push'
-      - '${_ARTIFACT_REGISTRY}/dagster:latest'
-    waitFor: ['build-dagster']
-
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'push-dagster-sha'
-    args:
-      - 'push'
-      - '${_ARTIFACT_REGISTRY}/dagster:${SHORT_SHA}'
+      - '-c'
+      - |
+        docker push ${_ARTIFACT_REGISTRY}/dagster:latest
+        docker push ${_ARTIFACT_REGISTRY}/dagster:${SHORT_SHA}
     waitFor: ['build-dagster']
 
   - name: 'gcr.io/cloud-builders/docker'
     id: 'push-user-code'
+    entrypoint: 'bash'
     args:
-      - 'push'
-      - '${_ARTIFACT_REGISTRY}/dagster-user-code:latest'
-    waitFor: ['build-user-code']
-
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'push-user-code-sha'
-    args:
-      - 'push'
-      - '${_ARTIFACT_REGISTRY}/dagster-user-code:${SHORT_SHA}'
+      - '-c'
+      - |
+        docker push ${_ARTIFACT_REGISTRY}/dagster-user-code:latest
+        docker push ${_ARTIFACT_REGISTRY}/dagster-user-code:${SHORT_SHA}
     waitFor: ['build-user-code']
 
   # GKEクラスタへの接続
@@ -80,23 +72,14 @@ steps:
 
   # Deploymentのイメージ更新
   - name: 'gcr.io/cloud-builders/kubectl'
-    id: 'update-deployments'
+    id: 'update-dagster-deployments'
     args:
       - 'set'
       - 'image'
       - 'deployment/dagster-web'
-      - 'webserver=${_ARTIFACT_REGISTRY}/dagster:latest'
-      - '-n'
-      - '${_NAMESPACE}'
-    waitFor: ['get-credentials']
-
-  - name: 'gcr.io/cloud-builders/kubectl'
-    id: 'update-daemon'
-    args:
-      - 'set'
-      - 'image'
+      - 'webserver=${_ARTIFACT_REGISTRY}/dagster:${SHORT_SHA}'
       - 'deployment/dagster-daemon'
-      - 'daemon=${_ARTIFACT_REGISTRY}/dagster:latest'
+      - 'daemon=${_ARTIFACT_REGISTRY}/dagster:${SHORT_SHA}'
       - '-n'
       - '${_NAMESPACE}'
     waitFor: ['get-credentials']
@@ -107,7 +90,7 @@ steps:
       - 'set'
       - 'image'
       - 'deployment/dagster-user-code'
-      - 'user-code=${_ARTIFACT_REGISTRY}/dagster-user-code:latest'
+      - 'user-code=${_ARTIFACT_REGISTRY}/dagster-user-code:${SHORT_SHA}'
       - '-n'
       - '${_NAMESPACE}'
     waitFor: ['get-credentials']
