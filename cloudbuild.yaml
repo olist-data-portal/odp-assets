@@ -7,11 +7,10 @@ steps:
       - '-c'
       - |
         set -e
-        # buildxが利用可能か確認し、ビルダーを作成または使用
-        if docker buildx ls | grep -q builder; then
-          docker buildx rm builder || true
-        fi
-        docker buildx create --name builder --driver docker-container --use
+        # 確実に既存のビルダーを削除
+        docker buildx rm builder || true
+        # 新しいビルダーを作成し使用
+        docker buildx create --name builder --driver docker-container --use --driver-opt network=host
         # ビルダーを起動
         docker buildx inspect --bootstrap
         # イメージをビルド
@@ -34,11 +33,10 @@ steps:
       - '-c'
       - |
         set -e
-        # buildxが利用可能か確認し、ビルダーを作成または使用
-        if docker buildx ls | grep -q builder; then
-          docker buildx rm builder || true
-        fi
-        docker buildx create --name builder --driver docker-container --use
+        # 確実に既存のビルダーを削除
+        docker buildx rm builder || true
+        # 新しいビルダーを作成し使用
+        docker buildx create --name builder --driver docker-container --use --driver-opt network=host
         # ビルダーを起動
         docker buildx inspect --bootstrap
         # イメージをビルド
