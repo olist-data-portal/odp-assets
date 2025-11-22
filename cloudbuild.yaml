@@ -1,13 +1,4 @@
 steps:
-  # Artifact Registryへの認証
-  - name: 'gcr.io/cloud-builders/gcloud'
-    id: 'auth-docker'
-    args:
-      - 'auth'
-      - 'configure-docker'
-      - '${_REGION}-docker.pkg.dev'
-    waitFor: ['-']
-
   # Dagsterイメージのビルドとプッシュ
   - name: 'gcr.io/cloud-builders/docker'
     id: 'build-dagster'
@@ -25,7 +16,7 @@ steps:
       - '--cache-to'
       - 'type=registry,ref=${_ARTIFACT_REGISTRY}/dagster:buildcache,mode=max'
       - '.'
-    waitFor: ['auth-docker']
+    waitFor: ['-']
 
   # User-codeイメージのビルドとプッシュ
   - name: 'gcr.io/cloud-builders/docker'
@@ -44,7 +35,7 @@ steps:
       - '--cache-to'
       - 'type=registry,ref=${_ARTIFACT_REGISTRY}/dagster-user-code:buildcache,mode=max'
       - '.'
-    waitFor: ['auth-docker']
+    waitFor: ['-']
 
   # イメージのプッシュ
   - name: 'gcr.io/cloud-builders/docker'
