@@ -1,0 +1,156 @@
+name: Dagster CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'deployments/**'
+      - 'dagster_project/**'
+      - 'dbt/**'
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: olist-data-portal
+  REGION: asia-northeast1
+  ARTIFACT_REGISTRY: asia-northeast1-docker.pkg.dev/olist-data-portal/odp-dagster
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+    
+      - name: Setup Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          install_components: 'gke-gcloud-auth-plugin'
+
+      - name: Authenticate to Google Cloud
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
+        run: |
+          echo "$GOOGLE_CREDENTIALS" > /tmp/gcp-key.json
+          echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-key.json" >> $GITHUB_ENV
+          gcloud auth activate-service-account --key-file=/tmp/gcp-key.json
+          gcloud config set project ${{ env.PROJECT_ID }}
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Check changed paths
+        id: changed_paths
+        run: |
+          # 手動実行の場合は全てを実行
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "dagster_changed=true" >> $GITHUB_OUTPUT
+            echo "dbt_changed=true" >> $GITHUB_OUTPUT
+            echo "deployments_changed=true" >> $GITHUB_OUTPUT
+          else
+            # 自動実行の場合は変更を検知
+            if git diff --name-only HEAD~1 | grep -q "^dagster_project/"; then
+              echo "dagster_changed=true" >> $GITHUB_OUTPUT
+            else
+              echo "dagster_changed=false" >> $GITHUB_OUTPUT
+            fi
+            if git diff --name-only HEAD~1 | grep -q "^dbt/"; then
+              echo "dbt_changed=true" >> $GITHUB_OUTPUT
+            else
+              echo "dbt_changed=false" >> $GITHUB_OUTPUT
+            fi
+            if git diff --name-only HEAD~1 | grep -q "^deployments/"; then
+              echo "deployments_changed=true" >> $GITHUB_OUTPUT
+            else
+              echo "deployments_changed=false" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: Set up Docker Buildx
+        if: steps.changed_paths.outputs.dagster_changed == 'true' || steps.changed_paths.outputs.dbt_changed == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Artifact Registry
+        if: steps.changed_paths.outputs.dagster_changed == 'true' || steps.changed_paths.outputs.dbt_changed == 'true'
+        run: |
+          TOKEN=$(gcloud auth print-access-token)
+          echo "$TOKEN" | docker login -u oauth2accesstoken --password-stdin ${{ env.REGION }}-docker.pkg.dev
+
+      - name: Build and push Dagster image
+        if: steps.changed_paths.outputs.dagster_changed == 'true' || steps.changed_paths.outputs.dbt_changed == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./dagster_project/dagster_project/Dockerfile_dagster
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.ARTIFACT_REGISTRY }}/dagster:latest
+          cache-from: type=registry,ref=${{ env.ARTIFACT_REGISTRY }}/dagster:buildcache
+          cache-to: type=registry,ref=${{ env.ARTIFACT_REGISTRY }}/dagster:buildcache,mode=max
+
+      - name: Build and push User-code image
+        if: steps.changed_paths.outputs.dagster_changed == 'true' || steps.changed_paths.outputs.dbt_changed == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./dagster_project/dagster_project/Dockerfile_user_code
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.ARTIFACT_REGISTRY }}/dagster-user-code:latest
+          cache-from: type=registry,ref=${{ env.ARTIFACT_REGISTRY }}/dagster-user-code:buildcache
+          cache-to: type=registry,ref=${{ env.ARTIFACT_REGISTRY }}/dagster-user-code:buildcache,mode=max
+
+      - name: Setup kubectl
+        if: always()
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Get GKE credentials
+        if: always()
+        run: |
+          gcloud container clusters get-credentials odp-dagster-cluster \
+            --region ${{ env.REGION }} \
+            --project ${{ env.PROJECT_ID }}
+
+      - name: Update Deployment images
+        if: steps.changed_paths.outputs.dagster_changed == 'true' || steps.changed_paths.outputs.dbt_changed == 'true'
+        run: |
+          kubectl set image deployment/dagster-web \
+            webserver=${{ env.ARTIFACT_REGISTRY }}/dagster:latest \
+            -n odp-dagster
+          kubectl set image deployment/dagster-daemon \
+            daemon=${{ env.ARTIFACT_REGISTRY }}/dagster:latest \
+            -n odp-dagster
+          kubectl set image deployment/dagster-user-code \
+            user-code=${{ env.ARTIFACT_REGISTRY }}/dagster-user-code:latest \
+            -n odp-dagster
+
+      - name: Deploy Webserver
+        if: steps.changed_paths.outputs.deployments_changed == 'true'
+        run: |
+          kubectl apply -f deployments/webserver.yaml
+
+      - name: Deploy Daemon
+        if: steps.changed_paths.outputs.deployments_changed == 'true'
+        run: |
+          kubectl apply -f deployments/daemon.yaml
+
+      - name: Deploy User-code
+        if: steps.changed_paths.outputs.deployments_changed == 'true'
+        run: |
+          kubectl apply -f deployments/user-code.yaml
+
+      - name: Wait for deployments to be ready
+        if: always()
+        run: |
+          kubectl rollout status deployment/dagster-web -n odp-dagster --timeout=5m || true
+          kubectl rollout status deployment/dagster-daemon -n odp-dagster --timeout=5m || true
+          kubectl rollout status deployment/dagster-user-code -n odp-dagster --timeout=5m || true
+
+      - name: Verify deployments
+        if: always()
+        run: |
+          kubectl get deployments -n odp-dagster
+
