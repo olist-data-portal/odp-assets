@@ -10,6 +10,7 @@ on:
 jobs:
   terraform-check:
     runs-on: ubuntu-latest
+    if: startsWith(github.head_ref, 'feature-')
     defaults:
       run:
         working-directory: ./gcp

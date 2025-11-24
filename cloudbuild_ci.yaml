@@ -1,0 +1,62 @@
+steps:
+  # Dagsterイメージのビルド
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-dagster'
+    env:
+      - 'DOCKER_BUILDKIT=1'
+    args:
+      - 'build'
+      - '-f'
+      - './dagster_project/dagster_project/Dockerfile_dagster'
+      - '-t'
+      - '${_ARTIFACT_REGISTRY}/dagster:${_SHORT_SHA}'
+      - '--cache-from'
+      - '${_ARTIFACT_REGISTRY}/dagster:buildcache'
+      - '.'
+    waitFor: ['-']
+
+  # User-codeイメージのビルド
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-user-code'
+    env:
+      - 'DOCKER_BUILDKIT=1'
+    args:
+      - 'build'
+      - '-f'
+      - './dagster_project/dagster_project/Dockerfile_user_code'
+      - '-t'
+      - '${_ARTIFACT_REGISTRY}/dagster-user-code:${_SHORT_SHA}'
+      - '--cache-from'
+      - '${_ARTIFACT_REGISTRY}/dagster-user-code:buildcache'
+      - '.'
+    waitFor: ['-']
+
+  # イメージのプッシュ
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-dagster'
+    args:
+      - 'push'
+      - '${_ARTIFACT_REGISTRY}/dagster:${_SHORT_SHA}'
+    waitFor: ['build-dagster']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-user-code'
+    args:
+      - 'push'
+      - '${_ARTIFACT_REGISTRY}/dagster-user-code:${_SHORT_SHA}'
+    waitFor: ['build-user-code']
+
+substitutions:
+  _ARTIFACT_REGISTRY: 'asia-northeast1-docker.pkg.dev/olist-data-portal/odp-dagster'
+  _REGION: 'asia-northeast1'
+  _SHORT_SHA: 'latest'
+  _VPC_CONNECTOR: 'projects/olist-data-portal/locations/asia-northeast1/connectors/odp-vpc-connector'
+
+options:
+  machineType: 'E2_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
+  vpcConnector: '${_VPC_CONNECTOR}'
+  vpcConnectorEgressSettings: 'PRIVATE_RANGES_ONLY'
+
+timeout: '1800s'
+
