@@ -15,14 +15,6 @@ Dagsterでオーケストレーションするデータパイプラインのア�
 - **GCPプロジェクトID**: `olist-data-portal`
 - **リソースプレフィックス**: `odp`
 
-## 環境
-
-- **local環境**: ローカル開発環境（Docker環境を使用）
-- **dev環境**: 開発環境（GKE上で実行）
-  - `feature-`ブランチがリモートにプッシュされた時にCI/CDでdev環境に反映
-- **prd環境**: 本番環境（GKE上で実行）
-  - `main`ブランチにマージされた時にCI/CDでprd環境に反映
-
 ## クイックスタート
 
 ### ローカル環境で起動（DevContainer）
@@ -58,91 +50,8 @@ uv run dagster dev -w dagster_project/workspace.local.yaml
 - `dagster_project_local`ディレクトリは`dagster dev`コマンド実行時に自動的に作成されます
 - 依存関係は`postCreateCommand`で自動的にインストールされます（`uv sync --dev`）
 - 環境変数はホストで設定すると、DevContainer内で自動的に読み込まれます
-- 本番環境では、Kubernetes Secretから環境変数として設定されます
 
-## CI/CD
-
-GitHub Actionsを使用してCI/CDを自動化しています。
-
-### ワークフロー
-
-- **CI**: `feature-`ブランチから`main`へのPull Requestが作成・更新されたときに実行
-  - コードのフォーマットチェック、バリデーション、テストを実行
-  - Terraformのフォーマットチェック、バリデーション、プランを実行
-- **CD（dev環境）**: `feature-`ブランチがリモートにプッシュされたときに実行
-  - Dockerイメージのビルドとプッシュを自動的に実行
-- **CD（prd環境）**: `main`ブランチにマージされたときに実行
-  - Dockerイメージのビルドとプッシュを自動的に実行
-  - Terraformのプランと適用を実行（`environment: production`により承認が必要）
-
-## Kubernetesデプロイ
-
-### Kubernetes Secretの設定
-
-本番環境で必要な機密情報をKubernetes Secretとして設定します。GCPコンソールから設定します。
-
-1. **GCPコンソールにアクセス**
-   - [GKEコンソール](https://console.cloud.google.com/kubernetes)にアクセス
-   - プロジェクト: `olist-data-portal`
-   - クラスタ: `odp-dagster-cluster`を選択
-
-2. **Workloads > Secrets に移動**
-   - 左メニューから「Workloads」→「Secrets」を選択
-   - または、直接URL: `https://console.cloud.google.com/kubernetes/secret?project=olist-data-portal`
-
-3. **Secretを作成**
-   - 「CREATE SECRET」ボタンをクリック
-   - 以下の情報を入力：
-     - **Name**: `odp-kaggle-api-token`
-     - **Namespace**: `odp-dagster`
-     - **Secret type**: `Generic`
-     - **Data**: 
-       - Key: `token`
-       - Value: `KGAT_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`（Kaggle APIトークン）
-
-4. **作成を確認**
-   - Secretが作成されたことを確認
-
-**注意**: 
-- Kaggle APIトークンは[Kaggle設定ページ](https://www.kaggle.com/settings)から取得できます
-- Secret Managerを使用する場合は、事前にGCPコンソールの[Secret Manager](https://console.cloud.google.com/security/secret-manager?project=olist-data-portal)からシークレットを作成しておく必要があります
-
-### 初回デプロイ
-
-GKEクラスタに接続してDeploymentを作成します：
-
-```bash
-# GKEクラスタに接続
-gcloud container clusters get-credentials odp-dagster-cluster \
-  --region asia-northeast1 \
-  --project olist-data-portal
-
-# Deploymentを作成
-kubectl apply -f deployments/webserver.yaml
-kubectl apply -f deployments/daemon.yaml
-kubectl apply -f deployments/user-code.yaml
-```
-
-### イメージ更新
-
-Dockerイメージが更新されたら、以下のコマンドでDeploymentのイメージを更新します（インフラデプロイ不要）：
-
-```bash
-# イメージを更新
-kubectl set image deployment/dagster-web \
-  webserver=asia-northeast1-docker.pkg.dev/olist-data-portal/odp-dagster/dagster:latest \
-  -n odp-dagster
-
-kubectl set image deployment/dagster-daemon \
-  daemon=asia-northeast1-docker.pkg.dev/olist-data-portal/odp-dagster/dagster:latest \
-  -n odp-dagster
-
-kubectl set image deployment/dagster-user-code \
-  user-code=asia-northeast1-docker.pkg.dev/olist-data-portal/odp-dagster/dagster-user-code:latest \
-  -n odp-dagster
-```
-
-## インフラとの関係
+## 本番環境のインフラとの関係
 
 **インフラリポジトリで管理**: GKE、Cloud SQL、サービスアカウント、VPC Connector、Cloud BuildサービスアカウントへのIAMロール付与等
 
