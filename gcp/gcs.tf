@@ -2,6 +2,7 @@ resource "google_storage_bucket" "data_lake" {
   name                        = "${var.resource_prefix}-data-lake"
   location                    = var.region
   uniform_bucket_level_access = true
+  public_access_prevention    = "enforced"
   force_destroy               = false
 
   labels = local.common_labels
@@ -19,4 +20,3 @@ resource "google_storage_bucket" "data_lake" {
     }
   }
 }
-
