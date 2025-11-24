@@ -103,5 +103,5 @@ jobs:
         if: steps.check_paths.outputs.dagster == 'true'
         run: uv run dagster definitions validate
         env:
-          DAGSTER_HOME: ./olist_data_portal
+          DAGSTER_HOME: ${{ github.workspace }}/dagster_project/olist_data_portal
 
