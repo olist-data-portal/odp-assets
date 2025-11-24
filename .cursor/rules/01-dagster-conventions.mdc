@@ -7,8 +7,8 @@ alwaysApply: true
 ## ガイドライン
 
 - **ドキュメント参照**: 対応するバージョンのDagster公式ドキュメントを優先
-- **プロジェクト構成**: `dagster_project/definitions.py`にアセット、ジョブ、スケジュールを定義
-- **環境変数**: 機密情報は環境変数から読み込み（Secret Managerから取得）
+- **プロジェクト構成**: `dagster_project/olist_data_portal/definitions.py`にアセット、ジョブ、スケジュールを定義
+- **環境変数**: 機密情報は環境変数から読み込み（`.env`ファイルから読み込み）
 
 ## 実装規約
 
@@ -22,7 +22,9 @@ alwaysApply: true
 
 ## セキュリティ
 
-- **機密情報**: Secret Managerで管理（ハードコード禁止、`.env`はgit管理に含めない）
+- **機密情報**: `.env`ファイルを使用（git管理に含めない）
+- **ハードコード禁止**: 機密情報をコードに直接記述することは禁止
+- **GCP認証**: `gcloud auth application-default login`を使用（サービスアカウントキーは不要）
 
 ## 品質
 

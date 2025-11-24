@@ -31,10 +31,17 @@ Thumbs.db
 .env.*
 !.env.example
 !.env.template
-.env.gcp
-.env.local
 .env.production
 .env.development
+
+# GCP credentials
+# 注意: サービスアカウントキーは使用しません（gcloud auth application-default loginを使用）
+.gcp/
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!jsconfig.json
 
 # Project specific
 dagster_project/dagster_project.egg-info/
@@ -42,13 +49,23 @@ dagster_project/dagster_project.egg-info/
 **/*.duckdb.wal
 
 # Dagster
-dagster_project/dagster_project/dagster.yaml  # 動的に生成されるファイル
 dagster_project/.tmp_dagster_home_*/
-dagster_project/dagster_project/history/
-dagster_project/dagster_project/logs/
-dagster_project/dagster_project/storage/
-dagster_project/dagster_project/.nux/  # Dagster自動生成ディレクトリ
-dagster_project/dagster_project/schedules/
+dagster_project/olist_data_portal/history/
+dagster_project/olist_data_portal/logs/
+dagster_project/olist_data_portal/storage/
+dagster_project/olist_data_portal/.nux/  # Dagster自動生成ディレクトリ
+dagster_project/olist_data_portal/schedules/
+dagster_project/olist_data_portal/run_*.log  # Dagster実行ログ
+dagster_project/olist_data_portal/dagster_run_*.log  # Dagster実行ログ
+dagster_project/olist_data_portal/.logs_queue/  # Dagster自動生成ディレクトリ
+# Dagster自動生成ファイル（より包括的なパターン）
+**/history/runs/*.db
+**/history/*.db
+**/schedules/*.db
+**/storage/**/*
+**/compute_logs/**
+**/.dagster/
+**/instance/
 
 # Logs
 *.log

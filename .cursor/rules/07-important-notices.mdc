@@ -6,41 +6,30 @@ alwaysApply: true
 
 ## 環境の扱い
 
-- **local環境**: ローカル開発環境（Docker環境を使用）
-- **dev環境**: `feature-`ブランチがリモートにプッシュされた時にCI/CDでdev環境に反映
-- **prd環境**: `main`ブランチにマージされた時にCI/CDでprd環境に反映
+- **開発環境**: DevContainerを使用
+  - DevContainer起動時に`gcloud auth application-default login --no-launch-browser`が自動的に実行され、GCPリソースへのアクセスが可能になります
 
 ## 機密情報の管理
 
-- **機密情報はSecret Managerで管理**: APIキー、データベースパスワード等の機密情報は必ずSecret Managerで管理する
+- **機密情報はSecret Managerで管理**: APIキー等の機密情報はSecret Managerで管理する（必要に応じて）
 - **ハードコード禁止**: 機密情報をコードに直接記述することは禁止
-- **環境変数**: ローカル開発時は`.env`ファイルを使用（git管理に含めない）
+- **環境変数**: `.env`ファイルを使用（git管理に含めない）
+- **GCP認証**: DevContainer起動時に`gcloud auth application-default login --no-launch-browser`が自動的に実行され、GCPリソースへのアクセスが可能になります（サービスアカウントキーは不要）
 
 ## データレイク・データウェアハウス
 
-- **データレイク（GCS）**: local環境、dev環境、prd環境で共通のGCSバケットを使用
-- **データウェアハウス（BigQuery）**: local環境、dev環境、prd環境で共通のBigQueryプロジェクトを使用
-- **データの共有**: 環境間で同じデータを参照するため、注意して開発する
+- **データレイク（GCS）**: 共通のGCSバケットを使用
+- **データウェアハウス（BigQuery）**: 共通のBigQueryプロジェクトを使用
 
-## Dockerイメージのビルド
+## 管理対象
 
-- **CI/CDで自動化**: DockerイメージのビルドとプッシュはCI/CDで自動的に実行される
-
-## インフラとの関係
-
-- **インフラリポジトリとは別**: Dagsterのインフラ（GKE、Cloud SQL、ServiceAccount、ConfigMap、Secret、Service、Ingress等）のデプロイはインフラリポジトリで行う
-- **このリポジトリで管理するもの**: Dagsterアセット定義、dbtモデル、Dockerイメージのビルド設定、Kubernetes DeploymentとJobの定義、データパイプライン用GCPリソース（サービスアカウント、GCSバケット、BigQueryデータセット）
+- **このリポジトリで管理**: Dagsterアセット定義、dbtモデル、データパイプライン用GCPリソース（GCSバケット）
 
 ## TerraformでのGCPリソース管理
 
-- **Terraform管理**: データパイプライン用のGCPリソース（サービスアカウント、GCSバケット、BigQueryデータセット）は`gcp/`ディレクトリでTerraformで管理
+- **Terraform管理**: データパイプライン用のGCPリソース（GCSバケット）は`gcp/`ディレクトリでTerraformで管理
 - **状態ファイル**: `.tfstate`ファイルはgit管理に含めない（`.gitignore`で除外）
 - **機密情報**: `terraform.tfvars`ファイルはgit管理に含めない（機密情報を含む可能性がある）
-- **環境間でのリソース共有**: データレイク（GCS）とデータウェアハウス（BigQuery）は環境間で共通のリソースを使用（Terraformで定義）
-
-## Kubernetes DeploymentとJobの管理
-
-- **Deployment管理**: Webserver、Daemon、User-codeの3つのDeploymentを`deployments/`ディレクトリで管理
-- **Job管理**: Run Execution Jobの定義を`deployments/`ディレクトリで管理
-- **イメージ更新**: Dockerイメージが更新されたら、`kubectl set image`コマンドでDeploymentのイメージを更新（インフラデプロイ不要）
-- **初回デプロイ**: `kubectl apply -f deployments/`でDeploymentを作成
+- **Terraformで管理していないリソース**: 以下のリソースはTerraformで管理していません（手動作成済み）
+  - GitHub Actions用のサービスアカウント（CI/CD実行用）
+  - Terraform状態ファイル保存用のGCSバケット（`odp-terraform-state`）

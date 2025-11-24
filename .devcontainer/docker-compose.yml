@@ -1,43 +1,74 @@
-version: '3.8'
-
 services:
   dagster_dev:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: dagster_dev_container
-    
+
     # ワークスペースをマウント
     volumes:
       - ../..:/workspace:cached
       - dagster-dev-packages:/usr/local/lib/python3.12/site-packages
-    
+
     # 作業ディレクトリ
-    working_dir: /workspace/twitch-dp-assets
-    
+    working_dir: /workspace/odp-assets
+
+    # 環境変数ファイル（.envファイルから読み込む）
+    env_file:
+      - ../.env
+
     # 環境変数
     environment:
       - PYTHONUNBUFFERED=1
-      - DAGSTER_HOME=/workspace/twitch-dp-assets/dagster_project/dagster_project
-    
+      - DAGSTER_HOME=/workspace/odp-assets/dagster_project/olist_data_portal
+      - DAGSTER_POSTGRES_HOST=postgres
+      - DAGSTER_POSTGRES_USER=dagster
+      - DAGSTER_POSTGRES_PASSWORD=dagster
+      - DAGSTER_POSTGRES_DB=dagster
+
     # ネットワーク設定（既存のDagsterサービスと通信可能にする）
     networks:
       - dagster-network
-    
+
     # ポート転送（開発用）
     ports:
       - "3000:3000"
       - "4000:4000"
-    
+
+    # PostgreSQLサービスに依存
+    depends_on:
+      postgres:
+        condition: service_healthy
+
     # コンテナを起動し続ける
     command: sleep infinity
-    
     # システムパッケージのインストール
     # uvのインストールに必要なパッケージ
     # コンテナ起動時にインストールされるため、ここではコメントアウト
 
+  postgres:
+    image: postgres:16-alpine
+    container_name: dagster_postgres_container
+    environment:
+      - POSTGRES_USER=dagster
+      - POSTGRES_PASSWORD=dagster
+      - POSTGRES_DB=dagster
+    volumes:
+      - dagster-postgres-data:/var/lib/postgresql/data
+    networks:
+      - dagster-network
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U dagster -d dagster" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
 volumes:
   dagster-dev-packages:
+  dagster-postgres-data:
+
 
 networks:
   dagster-network:
@@ -45,4 +76,3 @@ networks:
     # Docker Composeは同じ名前のネットワークが既に存在する場合は自動的に使用します
     name: dagster-network
     driver: bridge
-

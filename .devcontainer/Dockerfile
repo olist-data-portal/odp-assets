@@ -6,7 +6,24 @@ RUN apt-get update && apt-get install -y \
     curl \
     build-essential \
     sudo \
+    apt-transport-https \
+    ca-certificates \
+    gnupg \
+    lsb-release \
     && rm -rf /var/lib/apt/lists/*
+
+# Google Cloud SDKのインストール
+RUN curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
+    apt-get update && \
+    apt-get install -y google-cloud-cli && \
+    rm -rf /var/lib/apt/lists/*
+
+# Terraformのインストール
+RUN curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/hashicorp.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list && \
+    apt-get update && apt-get install -y terraform && \
+    rm -rf /var/lib/apt/lists/*
 
 # デフォルトユーザー（vscode用）を作成し、sudo権限を付与
 RUN useradd -m -s /bin/bash vscode && \

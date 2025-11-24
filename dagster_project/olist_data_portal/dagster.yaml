@@ -7,17 +7,8 @@ run_coordinator:
   class: QueuedRunCoordinator
 
 run_launcher:
-  module: dagster_cloud.run_launcher
-  class: CloudRunRunLauncher
-  config:
-    project_id:
-      env: GCP_PROJECT_ID
-    region:
-      env: GCP_REGION
-    service:
-      env: CLOUD_RUN_SERVICE_NAME
-    image:
-      env: CLOUD_RUN_IMAGE
+  module: dagster._core.launcher.default_run_launcher
+  class: DefaultRunLauncher
 
 run_storage:
   module: dagster_postgres.run_storage

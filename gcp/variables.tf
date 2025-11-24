@@ -22,4 +22,3 @@ variable "environment" {
   default     = "prd"
 }
 
-

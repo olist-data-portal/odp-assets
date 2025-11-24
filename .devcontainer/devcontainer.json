@@ -31,9 +31,6 @@
     }
   },
 
-  // コンテナ起動後のコマンド
-  "postCreateCommand": "cd dagster_project && uv sync --dev",
-  
   // ポート転送設定（Dagster Web UI用）
   "forwardPorts": [3000, 4000],
   "portsAttributes": {
@@ -61,7 +58,9 @@
     "PATH": "/usr/local/bin:/home/vscode/.local/bin:${containerEnv:PATH}"
   },
   
-  // コンテナ起動後のコマンド（エラーハンドリング付き）
-  "postCreateCommand": "cd dagster_project && (which uv && uv sync --dev || echo 'uv not found, trying alternative method') || echo 'postCreateCommand failed'"
+  // コンテナ起動後のコマンド
+  // 1. init.shでGCP認証を設定
+  // 2. uv syncで依存関係をインストール
+  "postCreateCommand": "bash .devcontainer/init.sh && cd dagster_project && uv sync"
 }
 
