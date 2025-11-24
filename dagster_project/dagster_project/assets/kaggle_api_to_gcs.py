@@ -1,88 +1,78 @@
-import os
-import logging
-import shutil
-from pathlib import Path
-from typing import Any
-
-from dagster import asset, Config
+import kagglehub
+import pandas as pd
+from dagster import EnvVar, asset, Config, get_dagster_logger
 from google.cloud import storage
-from kaggle.api.kaggle_api_extended import KaggleApi
-
-logger = logging.getLogger(__name__)
 
 
 class KaggleToGcsConfig(Config):
     """Kaggle APIからGCSへのデータ取得設定"""
 
-    dataset_name: str = "olist/brazilian-ecommerce"
-    gcs_bucket_name: str
-    gcs_prefix: str = "kaggle/olist-brazilian-ecommerce"
+    dataset_name: str = "olistbr/brazilian-ecommerce"
+    gcs_bucket_name: str = "odp-data-lake"
+    gcs_prefix: str = "olist-brazilian-ecommerce"
+    execution_date: str = "2016-10-01"
+    gcp_project_id: str = EnvVar("GCP_PROJECT_ID")
+
+
+ALL_OLIST_FILES = [
+    "olist_orders_dataset.csv",
+    "olist_customers_dataset.csv",
+    "olist_geolocation_dataset.csv",
+    "olist_order_items_dataset.csv",
+    "olist_order_payments_dataset.csv",
+    "olist_order_reviews_dataset.csv",
+    "olist_products_dataset.csv",
+    "olist_sellers_dataset.csv",
+    "product_category_name_translation.csv",
+]
 
 
 @asset(name="kaggle_to_gcs")
-def kaggle_to_gcs(config: KaggleToGcsConfig) -> dict[str, Any]:
-    """
-    Kaggle APIからデータセットをダウンロードし、GCSにアップロードする。
+def kaggle_to_gcs(config: KaggleToGcsConfig):
+    logger = get_dagster_logger()
 
-    Args:
-        config: KaggleToGcsConfig設定オブジェクト
+    # 1. データセットのダウンロード
+    dataset_path = kagglehub.dataset_download(config.dataset_name)
+    logger.info(f"Successfully downloaded dataset to {dataset_path}")
 
-    Returns:
-        アップロードされたファイルの情報を含む辞書
-    """
-    kaggle_username = os.getenv("KAGGLE_USERNAME")
-    kaggle_key = os.getenv("KAGGLE_KEY")
+    # 2. GCSクライアントの準備
+    storage_client = storage.Client(project=config.gcp_project_id)
+    bucket = storage_client.bucket(config.gcs_bucket_name)
+    # execution_dateの日付の終了時刻（23:59:59.999999）まで含める
+    target_date = pd.to_datetime(config.execution_date) + pd.Timedelta(days=1)
 
-    if not kaggle_username or not kaggle_key:
-        raise ValueError(
-            "KAGGLE_USERNAME and KAGGLE_KEY environment variables must be set"
-        )
+    # 3. 全てのファイルをループで処理
+    for filename in ALL_OLIST_FILES:
+        file_path = f"{dataset_path}/{filename}"
 
-    api = KaggleApi()
-    api.authenticate()
+        df = pd.read_csv(file_path)
+        gcs_blob_name = f"{config.gcs_prefix}/raw/{filename}"
 
-    temp_dir = Path("/tmp/kaggle_download")
-    temp_dir.mkdir(parents=True, exist_ok=True)
+        if filename == "olist_orders_dataset.csv":
+            # 注文データ: インクリメンタル処理を適用
+            df["order_purchase_timestamp"] = pd.to_datetime(
+                df["order_purchase_timestamp"]
+            )
+            # 実行日以前のデータを全てフィルタリング（timestamp型のまま比較）
+            df_filtered = df[df["order_purchase_timestamp"] <= target_date]
 
-    try:
-        logger.info(f"Downloading dataset: {config.dataset_name}")
-        api.dataset_download_files(config.dataset_name, path=str(temp_dir), unzip=True)
-
-        storage_client = storage.Client()
-        bucket = storage_client.bucket(config.gcs_bucket_name)
-
-        uploaded_files = []
-        csv_files = list(temp_dir.glob("*.csv"))
-
-        if not csv_files:
-            raise ValueError(f"No CSV files found in dataset: {config.dataset_name}")
-
-        for csv_file in csv_files:
-            blob_name = f"{config.gcs_prefix}/{csv_file.name}"
-            blob = bucket.blob(blob_name)
-
+            # GCSにアップロード
+            temp_upload_path = f"{dataset_path}/filtered_{filename}"
+            df_filtered.to_csv(temp_upload_path, index=False)
+            blob = bucket.blob(gcs_blob_name)
+            blob.upload_from_filename(temp_upload_path)
             logger.info(
-                f"Uploading {csv_file.name} to gs://{config.gcs_bucket_name}/{blob_name}"
-            )
-            blob.upload_from_filename(str(csv_file))
-
-            uploaded_files.append(
-                {
-                    "file_name": csv_file.name,
-                    "gcs_path": f"gs://{config.gcs_bucket_name}/{blob_name}",
-                    "size": csv_file.stat().st_size,
-                }
+                f"ORDERS (Incremental): Uploaded {len(df_filtered)} rows to {gcs_blob_name}"
             )
 
-        logger.info(f"Successfully uploaded {len(uploaded_files)} files to GCS")
+        else:
+            # 補助データ: フィルタリングせず全件アップロード（毎回上書き）
+            blob = bucket.blob(gcs_blob_name)
+            blob.upload_from_filename(file_path)
+            logger.info(
+                f"AUXILIARY: Uploaded all data for {filename} to {gcs_blob_name}"
+            )
 
-        return {
-            "dataset_name": config.dataset_name,
-            "uploaded_files": uploaded_files,
-            "total_files": len(uploaded_files),
-        }
+    logger.info("Dataset download completed")
 
-    finally:
-        if temp_dir.exists():
-            shutil.rmtree(temp_dir)
-            logger.info(f"Cleaned up temporary directory: {temp_dir}")
+    return config.execution_date

@@ -5,14 +5,22 @@ requires-python = ">=3.10,<3.14"
 dependencies = [
     "dagster",
     "dagster-cloud",
+    "dagster-postgres",
+    "dagster-webserver",
     "kaggle",
+    "kagglehub",
     "google-cloud-storage",
+    "pandas",
     "python-dateutil",
+    "python-dotenv>=1.2.1",
 ]
 
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["dagster_project"]
 
 [tool.dagster]
 module_name = "dagster_project.definitions"

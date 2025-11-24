@@ -25,6 +25,11 @@ spec:
         env:
         - name: DAGSTER_CURRENT_IMAGE
           value: "asia-northeast1-docker.pkg.dev/olist-data-portal/odp-dagster/dagster-user-code:latest"
+        - name: KAGGLE_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: odp-kaggle-api-token
+              key: token
         resources:
           requests:
             cpu: 100m

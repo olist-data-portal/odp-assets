@@ -13,26 +13,20 @@ alwaysApply: true
 ## 実装規約
 
 - **CIワークフロー**: `feature-`で始まるブランチから`main`へのPull Requestが作成・更新されたときに実行
-  - Cloud BuildでDockerイメージのビルドとプッシュを自動的に実行（`cloudbuild_ci.yaml`を使用）
+  - `gcp/**`ディレクトリの変更があった場合のみTerraformのフォーマットチェック、バリデーション、プランを実行
+  - DagsterのDockerイメージに変更が起きる場合のみCloud BuildでDockerイメージのビルドとプッシュを自動的に実行（`cloudbuild_ci.yaml`を使用）
   - SHORT_SHAタグ付きでイメージをプッシュ（latestタグは付けない）
-- **CDワークフロー（dev環境）**: `feature-`で始まるブランチがリモートにプッシュされたときに実行
-  - Cloud Buildでlatestタグの付け替えとデプロイを自動的に実行（`cloudbuild_cd.yaml`を使用）
-- **CDワークフロー（prd環境）**: `main`ブランチにマージされたときに実行
-  - Cloud Buildでlatestタグの付け替えとデプロイを自動的に実行（`cloudbuild_cd.yaml`を使用）
-- **Cloud Build設定**: 
-  - `cloudbuild_ci.yaml`: CI用（ビルドとプッシュのみ、SHORT_SHAタグ付き）
-  - `cloudbuild_cd.yaml`: CD用（latestタグ付けとデプロイのみ）
-- **Terraform CIワークフロー**: `feature-`で始まるブランチから`main`へのPull Requestが作成・更新されたときに実行
-  - `gcp/**`ディレクトリの変更があった場合のみトリガー
-  - Terraformのフォーマットチェック、バリデーション、プランを実行
-- **Terraform CDワークフロー**: `main`ブランチにマージされたときに実行
-  - `gcp/**`ディレクトリの変更があった場合のみトリガー
-  - Terraformのプランと適用を実行
+- **CDワークフロー**: `main`ブランチにマージされたときに実行
+  - `gcp/**`ディレクトリの変更があった場合のみTerraformのプランと適用を実行
   - `environment: production`を設定し、リソース変更時に承認が必要
+  - DagsterのDockerイメージに変更が起きる場合のみCloud BuildでDockerイメージのビルドとプッシュを自動的に実行（`cloudbuild_ci.yaml`を使用）
+  - SHORT_SHAタグ付きでイメージをプッシュ（latestタグは付けない）
+- **Cloud Build設定**: 
+  - `cloudbuild_ci.yaml`: CI/CD用（ビルドとプッシュのみ、SHORT_SHAタグ付き）
 
 ## 命名規約
 
-- **ワークフローファイル名**: スネークケースを使用（例: `ci.yml`, `cd_dev.yml`, `cd_prd.yml`, `terraform_ci.yml`, `terraform_cd.yml`）
+- **ワークフローファイル名**: スネークケースを使用（例: `docker_image_ci.yml`, `docker_image_cd.yml`, `terraform_ci.yml`, `terraform_cd.yml`）
 
 ## セキュリティ
 
@@ -42,7 +36,7 @@ alwaysApply: true
 ## 品質
 
 - **必要最小限のステップ**: 運用に必要十分な機能のみを保持し、過剰な実装は行わない
-- **エラーハンドリング**: ステップが失敗した場合は、その時点でジョブを中止する（`fail-fast: true`を設定）
+- **エラーハンドリング**: ステップが失敗した場合は、その時点でジョブを中止する（デフォルトで有効）
 
 ## 簡潔性
 

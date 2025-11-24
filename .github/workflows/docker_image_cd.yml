@@ -8,6 +8,12 @@ on:
       - 'deployments/**'
       - 'dagster_project/**'
       - 'dbt/**'
+  workflow_run:
+    workflows: ["Terraform CD"]
+    types:
+      - completed
+    branches:
+      - main
 
 env:
   PROJECT_ID: olist-data-portal
@@ -19,10 +25,17 @@ jobs:
   build:
     runs-on: ubuntu-latest
     environment: production
+    # workflow_runイベントの場合は、terraform_cdが成功した場合のみ実行
+    if: |
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          # workflow_runイベントの場合は、元のワークフローのコミットSHAを使用
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
@@ -40,7 +53,16 @@ jobs:
       - name: Check changed paths
         id: changed_paths
         run: |
-          if git diff --name-only HEAD~1 | grep -qE "^(dagster_project/|dbt/|deployments/)"; then
+          # pushイベントの場合はHEAD~1と比較、workflow_runイベントの場合は元のワークフローのコミットと比較
+          if [ "${{ github.event_name }}" == "push" ]; then
+            BASE_SHA="HEAD~1"
+            TARGET_SHA="HEAD"
+          else
+            # workflow_runイベントの場合、元のワークフローのコミットの親と比較
+            BASE_SHA="${{ github.event.workflow_run.head_sha }}~1"
+            TARGET_SHA="${{ github.event.workflow_run.head_sha }}"
+          fi
+          if git diff --name-only ${BASE_SHA} ${TARGET_SHA} | grep -qE "^(dagster_project/|dbt/|deployments/)"; then
             echo "should_build=true" >> $GITHUB_OUTPUT
           else
             echo "should_build=false" >> $GITHUB_OUTPUT
@@ -49,7 +71,13 @@ jobs:
       - name: Build and push Docker images
         if: steps.changed_paths.outputs.should_build == 'true'
         run: |
-          SHORT_SHA=$(git rev-parse --short HEAD)
+          # workflow_runイベントの場合は元のワークフローのコミットSHAを使用
+          if [ "${{ github.event_name }}" == "workflow_run" ]; then
+            COMMIT_SHA="${{ github.event.workflow_run.head_sha }}"
+          else
+            COMMIT_SHA="HEAD"
+          fi
+          SHORT_SHA=$(git rev-parse --short ${COMMIT_SHA})
           if [ -z "$SHORT_SHA" ]; then
             SHORT_SHA="unknown"
           fi
