@@ -11,6 +11,7 @@ dependencies = [
     "google-cloud-storage",
     "google-cloud-bigquery",
     "pandas",
+    "pyarrow",
     "python-dateutil",
     "python-dotenv>=1.2.1",
 ]
