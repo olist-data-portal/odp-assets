@@ -51,6 +51,16 @@ uv run dagster dev -w dagster_project/workspace.local.yaml
 - 依存関係は`postCreateCommand`で自動的にインストールされます（`uv sync --dev`）
 - 環境変数はホストで設定すると、DevContainer内で自動的に読み込まれます
 
+## CI/CD
+
+- **CI**: `feature-`ブランチから`main`へのPull Request時に実行
+  - Dockerイメージのビルドとプッシュ（SHORT_SHAタグ付き）
+- **CD**: `main`ブランチにマージされた時に実行
+  - 既にビルドされたDockerイメージにlatestタグを付け替えてGKEにデプロイ
+  - 初回デプロイ時は名前空間、ConfigMap、Secretの作成も含む
+
+詳細は`.cursor/rules/06-ci-cd.mdc`を参照してください。
+
 ## 本番環境のインフラとの関係
 
 **インフラリポジトリで管理**: GKE、Cloud SQL、サービスアカウント、VPC Connector、Cloud BuildサービスアカウントへのIAMロール付与等

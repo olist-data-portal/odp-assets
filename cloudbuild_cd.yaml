@@ -50,6 +50,51 @@ steps:
         kubectl create namespace ${_NAMESPACE} || true
     waitFor: ['get-credentials']
 
+  # ConfigMapの作成（存在しない場合に作成、存在する場合は更新）
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: 'create-configmap'
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=${_REGION}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # workspace.yamlのプレースホルダーを実際のサービス名とポート番号に置き換え
+        sed -e 's/DAGSTER_USER_CODE_SERVICE_PLACEHOLDER/odp-dagster-user-code/g' \
+            -e 's/port: 443/port: 4000/g' \
+          dagster_project/dagster_project/workspace.yaml > /tmp/workspace.yaml
+        kubectl create configmap odp-workspace \
+          --from-file=workspace.yaml=/tmp/workspace.yaml \
+          -n ${_NAMESPACE} \
+          --dry-run=client -o yaml | kubectl apply -f -
+    waitFor: ['create-namespace']
+
+  # Secretの作成（存在しない場合に作成、存在する場合は更新）
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: 'create-secrets'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # データベースパスワードのSecret作成
+        DB_PASSWORD=$(gcloud secrets versions access latest --secret=odp-database-password --project=${PROJECT_ID})
+        kubectl create secret generic odp-database-password \
+          --from-literal=password="${DB_PASSWORD}" \
+          -n ${_NAMESPACE} \
+          --dry-run=client -o yaml | kubectl apply -f -
+        
+        # Kaggle APIトークンのSecret作成
+        KAGGLE_TOKEN=$(gcloud secrets versions access latest --secret=odp-kaggle-api-token --project=${PROJECT_ID})
+        kubectl create secret generic odp-kaggle-api-token \
+          --from-literal=token="${KAGGLE_TOKEN}" \
+          -n ${_NAMESPACE} \
+          --dry-run=client -o yaml | kubectl apply -f -
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=${_REGION}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}'
+    waitFor: ['get-credentials', 'create-namespace']
+
   # Deploymentの初期デプロイ（存在しない場合に作成）
   - name: 'gcr.io/cloud-builders/kubectl'
     id: 'apply-deployments'
@@ -67,9 +112,9 @@ steps:
       - '-n'
       - '${_NAMESPACE}'
       - '--validate=false'
-    waitFor: ['create-namespace']
+    waitFor: ['create-configmap', 'create-secrets']
 
-  # Deploymentのイメージ更新
+  # Deploymentのイメージ更新（latestタグを使用）
   - name: 'gcr.io/cloud-builders/kubectl'
     id: 'update-dagster-web'
     env:
@@ -79,7 +124,7 @@ steps:
       - 'set'
       - 'image'
       - 'deployment/dagster-web'
-      - 'webserver=${_ARTIFACT_REGISTRY}/dagster:${_SHORT_SHA}'
+      - 'webserver=${_ARTIFACT_REGISTRY}/dagster:latest'
       - '-n'
       - '${_NAMESPACE}'
     waitFor: ['apply-deployments']
@@ -93,7 +138,7 @@ steps:
       - 'set'
       - 'image'
       - 'deployment/dagster-daemon'
-      - 'daemon=${_ARTIFACT_REGISTRY}/dagster:${_SHORT_SHA}'
+      - 'daemon=${_ARTIFACT_REGISTRY}/dagster:latest'
       - '-n'
       - '${_NAMESPACE}'
     waitFor: ['apply-deployments']
@@ -107,7 +152,7 @@ steps:
       - 'set'
       - 'image'
       - 'deployment/dagster-user-code'
-      - 'user-code=${_ARTIFACT_REGISTRY}/dagster-user-code:${_SHORT_SHA}'
+      - 'user-code=${_ARTIFACT_REGISTRY}/dagster-user-code:latest'
       - '-n'
       - '${_NAMESPACE}'
     waitFor: ['apply-deployments']

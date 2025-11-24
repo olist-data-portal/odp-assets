@@ -8,6 +8,7 @@ on:
       - 'deployments/**'
       - 'dagster_project/**'
       - 'dbt/**'
+      - '.github/workflows/docker_image_ci.yml'
 
 env:
   PROJECT_ID: olist-data-portal

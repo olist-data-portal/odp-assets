@@ -19,10 +19,12 @@ alwaysApply: true
 - **CDワークフロー**: `main`ブランチにマージされたときに実行
   - `gcp/**`ディレクトリの変更があった場合のみTerraformのプランと適用を実行
   - `environment: production`を設定し、リソース変更時に承認が必要
-  - DagsterのDockerイメージに変更が起きる場合のみCloud BuildでDockerイメージのビルドとプッシュを自動的に実行（`cloudbuild_ci.yaml`を使用）
-  - SHORT_SHAタグ付きでイメージをプッシュ（latestタグは付けない）
+  - DagsterのDockerイメージに変更が起きる場合のみCloud Buildでlatestタグの付け替えとGKEへのデプロイを自動的に実行（`cloudbuild_cd.yaml`を使用）
+  - 注意: CDではビルドとプッシュは行わない（CIで既にビルドされたSHORT_SHAタグのイメージを使用）
+  - latestタグを付け替えてからGKEにデプロイ（初回デプロイ時は名前空間、ConfigMap、Secretの作成も含む）
 - **Cloud Build設定**: 
-  - `cloudbuild_ci.yaml`: CI/CD用（ビルドとプッシュのみ、SHORT_SHAタグ付き）
+  - `cloudbuild_ci.yaml`: CI用（ビルドとプッシュのみ、SHORT_SHAタグ付き）
+  - `cloudbuild_cd.yaml`: CD用（latestタグの付け替えとGKEへのデプロイ）
 
 ## 命名規約
 

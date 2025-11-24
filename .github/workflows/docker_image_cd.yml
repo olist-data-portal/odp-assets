@@ -8,6 +8,7 @@ on:
       - 'deployments/**'
       - 'dagster_project/**'
       - 'dbt/**'
+      - '.github/workflows/docker_image_cd.yml'
   workflow_run:
     workflows: ["Terraform CD"]
     types:
@@ -63,13 +64,13 @@ jobs:
             TARGET_SHA="${{ github.event.workflow_run.head_sha }}"
           fi
           if git diff --name-only ${BASE_SHA} ${TARGET_SHA} | grep -qE "^(dagster_project/|dbt/|deployments/)"; then
-            echo "should_build=true" >> $GITHUB_OUTPUT
+            echo "should_deploy=true" >> $GITHUB_OUTPUT
           else
-            echo "should_build=false" >> $GITHUB_OUTPUT
+            echo "should_deploy=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Build and push Docker images
-        if: steps.changed_paths.outputs.should_build == 'true'
+      - name: Deploy to GKE
+        if: steps.changed_paths.outputs.should_deploy == 'true'
         run: |
           # workflow_runイベントの場合は元のワークフローのコミットSHAを使用
           if [ "${{ github.event_name }}" == "workflow_run" ]; then
@@ -81,8 +82,10 @@ jobs:
           if [ -z "$SHORT_SHA" ]; then
             SHORT_SHA="unknown"
           fi
+          # GKEへのデプロイ（latestタグを付け替えてからデプロイ）
+          # 注意: このステップでは既にCIでビルドされたSHORT_SHAタグのイメージを使用
           gcloud builds submit \
-            --config=cloudbuild_ci.yaml \
-            --substitutions=_ARTIFACT_REGISTRY=${{ env.ARTIFACT_REGISTRY }},_REGION=${{ env.REGION }},_SHORT_SHA=${SHORT_SHA},_VPC_CONNECTOR=${{ env.VPC_CONNECTOR }} \
+            --config=cloudbuild_cd.yaml \
+            --substitutions=_ARTIFACT_REGISTRY=${{ env.ARTIFACT_REGISTRY }},_REGION=${{ env.REGION }},_SHORT_SHA=${SHORT_SHA},_CLUSTER_NAME=odp-dagster-cluster,_NAMESPACE=odp-dagster,_VPC_CONNECTOR=${{ env.VPC_CONNECTOR }} \
             --project=${{ env.PROJECT_ID }}
 
