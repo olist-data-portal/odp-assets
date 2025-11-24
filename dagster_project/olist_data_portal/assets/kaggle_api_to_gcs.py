@@ -97,9 +97,7 @@ def _upload_file_to_gcs(
     try:
         if filename == ORDERS_FILE and target_date is not None:
             df = pd.read_csv(f"{dataset_path}/{filename}")
-            df["order_purchase_timestamp"] = pd.to_datetime(
-                df["order_purchase_timestamp"]
-            )
+            df["order_purchase_timestamp"] = pd.to_datetime(df["order_purchase_timestamp"])
             df_filtered = df[df["order_purchase_timestamp"] <= target_date]
 
             temp_upload_path = f"{dataset_path}/filtered_{filename}"
@@ -120,9 +118,7 @@ def _upload_file_to_gcs(
             df = pd.read_csv(file_path)
             blob = bucket.blob(gcs_blob_name)
             blob.upload_from_filename(file_path)
-            logger.info(
-                f"AUXILIARY: Uploaded all data for {filename} to {gcs_blob_name}"
-            )
+            logger.info(f"AUXILIARY: Uploaded all data for {filename} to {gcs_blob_name}")
             return {
                 "filename": filename,
                 "rows_uploaded": len(df),
