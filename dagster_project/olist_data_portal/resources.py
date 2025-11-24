@@ -24,4 +24,3 @@ class GcsResource(ConfigurableResource):
     def get_bucket(self, bucket_name: str) -> storage.Bucket:
         """GCSバケットを取得"""
         return self.get_client().bucket(bucket_name)
-
