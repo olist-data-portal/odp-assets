@@ -101,7 +101,7 @@ jobs:
 
       - name: Verify Dagster Definitions
         if: steps.check_paths.outputs.dagster == 'true'
-        run: uv run dagster code-location list
+        run: uv run dagster definitions validate
         env:
           DAGSTER_HOME: ./olist_data_portal
 
