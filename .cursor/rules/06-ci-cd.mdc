@@ -13,11 +13,15 @@ alwaysApply: true
 ## 実装規約
 
 - **CIワークフロー**: `feature-`で始まるブランチから`main`へのPull Requestが作成・更新されたときに実行
+  - Cloud BuildでDockerイメージのビルドとプッシュを自動的に実行（`cloudbuild_ci.yaml`を使用）
+  - SHORT_SHAタグ付きでイメージをプッシュ（latestタグは付けない）
 - **CDワークフロー（dev環境）**: `feature-`で始まるブランチがリモートにプッシュされたときに実行
-  - Dockerイメージのビルドとプッシュを自動的に実行
+  - Cloud Buildでlatestタグの付け替えとデプロイを自動的に実行（`cloudbuild_cd.yaml`を使用）
 - **CDワークフロー（prd環境）**: `main`ブランチにマージされたときに実行
-  - Dockerイメージのビルドとプッシュを自動的に実行
-- **Dockerイメージのビルド**: CI/CDで自動的に実行される（手動でのビルド・プッシュは不要）
+  - Cloud Buildでlatestタグの付け替えとデプロイを自動的に実行（`cloudbuild_cd.yaml`を使用）
+- **Cloud Build設定**: 
+  - `cloudbuild_ci.yaml`: CI用（ビルドとプッシュのみ、SHORT_SHAタグ付き）
+  - `cloudbuild_cd.yaml`: CD用（latestタグ付けとデプロイのみ）
 - **Terraform CIワークフロー**: `feature-`で始まるブランチから`main`へのPull Requestが作成・更新されたときに実行
   - `gcp/**`ディレクトリの変更があった場合のみトリガー
   - Terraformのフォーマットチェック、バリデーション、プランを実行

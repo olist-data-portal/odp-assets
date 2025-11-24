@@ -14,6 +14,11 @@ alwaysApply: true
 2. **GCSからBigQueryへのロード**: GCSのデータをBigQuery（データウェアハウス）にロード
 3. **dbtでのモデル構築**: BigQueryのデータをdbtで変換・モデル化
 
+## プロジェクト情報
+
+- **GCPプロジェクトID**: `olist-data-portal`
+- **リソースプレフィックス**: `odp`
+
 ## 環境
 
 - **local環境**: ローカル開発環境（Docker環境を使用）
@@ -24,9 +29,11 @@ alwaysApply: true
 
 ## インフラとの関係
 
-**注意**: Dagsterのインフラ（GKE、Cloud SQL、サービスアカウント等）のデプロイはインフラリポジトリで行います。このアプリケーションリポジトリでは、以下のみを管理します：
+**インフラリポジトリで管理**: GKE、Cloud SQL、サービスアカウント、VPC Connector、Cloud BuildサービスアカウントへのIAMロール付与等
 
+**このアプリケーションリポジトリで管理**:
 - Dagsterのアセット定義（Python）
 - dbtプロジェクト（dbtモデル定義）
-- Dockerイメージのビルド設定（CI/CDで自動的にビルド・プッシュされる）
+- Cloud Buildの設定（`cloudbuild_ci.yaml`、`cloudbuild_cd.yaml`）
 - Kubernetes DeploymentとJobの定義（`deployments/`ディレクトリ配下）
+- データパイプライン用GCPリソース（GCSバケット、task/executionサービスアカウントへのIAMロール付与）

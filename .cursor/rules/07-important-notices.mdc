@@ -12,9 +12,10 @@ alwaysApply: true
 
 ## 機密情報の管理
 
-- **機密情報はSecret Managerで管理**: APIキー、データベースパスワード等の機密情報は必ずSecret Managerで管理する
+- **機密情報はSecret Managerで管理**: APIキー、データベースパスワード等の機密情報は必ずSecret Managerで管理する（本番環境・dev環境）
 - **ハードコード禁止**: 機密情報をコードに直接記述することは禁止
 - **環境変数**: ローカル開発時は`.env`ファイルを使用（git管理に含めない）
+- **GCP認証**: ローカル開発環境では`gcloud auth application-default login`を使用（サービスアカウントキーは不要）
 
 ## データレイク・データウェアハウス
 
@@ -28,15 +29,14 @@ alwaysApply: true
 
 ## インフラとの関係
 
-- **インフラリポジトリとは別**: Dagsterのインフラ（GKE、Cloud SQL、ServiceAccount、ConfigMap、Secret、Service、Ingress等）のデプロイはインフラリポジトリで行う
-- **このリポジトリで管理するもの**: Dagsterアセット定義、dbtモデル、Dockerイメージのビルド設定、Kubernetes DeploymentとJobの定義、データパイプライン用GCPリソース（サービスアカウント、GCSバケット、BigQueryデータセット）
+- **インフラリポジトリで管理**: GKE、Cloud SQL、サービスアカウント、VPC Connector、Cloud BuildサービスアカウントへのIAMロール付与等
+- **このリポジトリで管理**: Dagsterアセット定義、dbtモデル、Cloud Build設定、Kubernetes DeploymentとJobの定義、データパイプライン用GCPリソース（GCSバケット、task/executionサービスアカウントへのIAMロール付与）
 
 ## TerraformでのGCPリソース管理
 
-- **Terraform管理**: データパイプライン用のGCPリソース（サービスアカウント、GCSバケット、BigQueryデータセット）は`gcp/`ディレクトリでTerraformで管理
+- **Terraform管理**: データパイプライン用のGCPリソース（GCSバケット、task/executionサービスアカウントへのIAMロール付与）は`gcp/`ディレクトリでTerraformで管理
 - **状態ファイル**: `.tfstate`ファイルはgit管理に含めない（`.gitignore`で除外）
 - **機密情報**: `terraform.tfvars`ファイルはgit管理に含めない（機密情報を含む可能性がある）
-- **環境間でのリソース共有**: データレイク（GCS）とデータウェアハウス（BigQuery）は環境間で共通のリソースを使用（Terraformで定義）
 
 ## Kubernetes DeploymentとJobの管理
 
