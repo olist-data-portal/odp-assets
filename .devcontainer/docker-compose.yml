@@ -20,7 +20,7 @@ services:
     # 環境変数
     environment:
       - PYTHONUNBUFFERED=1
-      - DAGSTER_HOME=/workspace/odp-assets/dagster_project/dagster_project_local
+      - DAGSTER_HOME=/workspace/odp-assets/dagster_project/olist_data_portal
       - DAGSTER_POSTGRES_HOST=postgres
       - DAGSTER_POSTGRES_USER=dagster
       - DAGSTER_POSTGRES_PASSWORD=dagster

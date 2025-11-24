@@ -5,10 +5,13 @@
 ## 管理対象リソース
 
 - **GCSバケット**: データレイク（`${resource_prefix}-data-lake`）
-- **IAMロール**: インフラリポジトリで作成されたtask/executionサービスアカウントへのデータパイプライン関連IAMロール付与
-  - `roles/storage.objectAdmin`
-  - `roles/bigquery.dataEditor`
-  - `roles/bigquery.jobUser`
+
+## Terraformで管理していないリソース
+
+以下のリソースはTerraformで管理していません（手動作成済み）:
+
+- **GitHub Actions用のサービスアカウント**: CI/CD実行用のサービスアカウント
+- **Terraform状態ファイル保存用のGCSバケット**: `odp-terraform-state`（リモート状態バックエンド用）
 
 ## 使用方法
 
@@ -20,7 +23,3 @@ terraform apply
 ```
 
 状態ファイルはGCSバケット（`odp-terraform-state`）に保存されます。
-
-## 注意事項
-
-- インフラリポジトリで作成されたtask/executionサービスアカウントが存在することを前提としています

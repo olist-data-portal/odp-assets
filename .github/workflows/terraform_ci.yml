@@ -25,17 +25,15 @@ jobs:
           terraform_version: 1.6.0
 
       - name: Authenticate to Google Cloud
-        env:
-          GOOGLE_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
-        run: |
-          echo "$GOOGLE_CREDENTIALS" > /tmp/gcp-key.json
-          echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-key.json" >> $GITHUB_ENV
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - name: Terraform Format Check
         run: terraform fmt -check -recursive
 
       - name: Terraform Init
-        run: terraform init
+        run: terraform init -upgrade=false
 
       - name: Terraform Validate
         run: terraform validate

@@ -1,6 +1,0 @@
-load_from:
-  - grpc_server:
-      host: DAGSTER_USER_CODE_SERVICE_PLACEHOLDER
-      port: 443
-      location_name: "dagster_project"
-

@@ -14,26 +14,18 @@ alwaysApply: true
 
 - **CIワークフロー**: `feature-`で始まるブランチから`main`へのPull Requestが作成・更新されたときに実行
   - `gcp/**`ディレクトリの変更があった場合のみTerraformのフォーマットチェック、バリデーション、プランを実行
-  - DagsterのDockerイメージに変更が起きる場合のみCloud BuildでDockerイメージのビルドとプッシュを自動的に実行（`cloudbuild_ci.yaml`を使用）
-  - SHORT_SHAタグ付きでイメージをプッシュ（latestタグは付けない）
 - **CDワークフロー**: `main`ブランチにマージされたときに実行
   - `gcp/**`ディレクトリの変更があった場合のみTerraformのプランと適用を実行
   - `environment: production`を設定し、リソース変更時に承認が必要
-  - DagsterのDockerイメージに変更が起きる場合のみCloud Buildでlatestタグの付け替えとGKEへのデプロイを自動的に実行（`cloudbuild_cd.yaml`を使用）
-  - 注意: CDではビルドとプッシュは行わない（CIで既にビルドされたSHORT_SHAタグのイメージを使用）
-  - latestタグを付け替えてからGKEにデプロイ（初回デプロイ時は名前空間、ConfigMap、Secretの作成も含む）
-- **Cloud Build設定**: 
-  - `cloudbuild_ci.yaml`: CI用（ビルドとプッシュのみ、SHORT_SHAタグ付き）
-  - `cloudbuild_cd.yaml`: CD用（latestタグの付け替えとGKEへのデプロイ）
 
 ## 命名規約
 
-- **ワークフローファイル名**: スネークケースを使用（例: `docker_image_ci.yml`, `docker_image_cd.yml`, `terraform_ci.yml`, `terraform_cd.yml`）
+- **ワークフローファイル名**: スネークケースを使用（例: `terraform_ci.yml`, `terraform_cd.yml`)
 
 ## セキュリティ
 
 - **機密情報**: GitHub Secretsで管理（ハードコード禁止）
-- **サービスアカウントキー**: 最小権限の原則に従い、必要最小限の権限のみを付与
+- **サービスアカウント**: GitHub Actions用のサービスアカウントは作成済みのものを使用
 
 ## 品質
 
@@ -44,7 +36,4 @@ alwaysApply: true
 
 - **必要最小限の機能**: 過剰な実装は行わない
 - **GitHub Secrets**: 必須項目のみ設定
-  - `GCP_SA_KEY`: GCPサービスアカウントキー（JSON形式、Artifact Registry Writer権限）
-  - `GCP_PROJECT_ID`: GCPプロジェクトID
-  - `ARTIFACT_REGISTRY_REPOSITORY`: Artifact Registryリポジトリ名
-  - `REGION`: GCPリージョン（例: `asia-northeast1`）
+  - `GCP_SA_KEY`: GCPサービスアカウントキー（JSON形式、Terraform実行に必要な権限）

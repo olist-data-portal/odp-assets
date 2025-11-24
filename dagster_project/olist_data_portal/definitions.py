@@ -1,6 +1,6 @@
 from dagster import Definitions, define_asset_job
 
-from dagster_project.assets import kaggle_to_gcs
+from olist_data_portal.assets import kaggle_to_gcs
 
 olist_data_portal_job = define_asset_job(
     name="olist_data_portal_job",

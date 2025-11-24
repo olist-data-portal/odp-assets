@@ -61,6 +61,6 @@
   // コンテナ起動後のコマンド
   // 1. init.shでGCP認証を設定
   // 2. uv syncで依存関係をインストール
-  "postCreateCommand": "bash .devcontainer/init.sh && cd dagster_project && uv sync --dev"
+  "postCreateCommand": "bash .devcontainer/init.sh && cd dagster_project && uv sync"
 }
 

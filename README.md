@@ -17,8 +17,6 @@ Dagsterでオーケストレーションするデータパイプラインのア�
 
 ## クイックスタート
 
-### ローカル環境で起動（DevContainer）
-
 1. **DevContainerを起動**
    - VS Code/Cursorでこのリポジトリを開き、「Reopen in Container」を選択
    - 初回起動時は、依存関係のインストールとGCP認証の設定が自動的に実行されます
@@ -40,34 +38,33 @@ Dagsterでオーケストレーションするデータパイプラインのア�
 ```bash
 cd dagster_project
 uv sync --dev
-uv run dagster dev -w dagster_project/workspace.local.yaml
+uv run dagster dev
 ```
 
    - Web UI: http://localhost:3000
 
 **注意**: 
 - `DAGSTER_HOME`はDevContainer起動時に自動的に設定されます（`.devcontainer/docker-compose.yml`で設定済み）
-- `dagster_project_local`ディレクトリは`dagster dev`コマンド実行時に自動的に作成されます
 - 依存関係は`postCreateCommand`で自動的にインストールされます（`uv sync --dev`）
 - 環境変数はホストで設定すると、DevContainer内で自動的に読み込まれます
 
 ## CI/CD
 
 - **CI**: `feature-`ブランチから`main`へのPull Request時に実行
-  - Dockerイメージのビルドとプッシュ（SHORT_SHAタグ付き）
+  - `gcp/**`ディレクトリの変更があった場合のみTerraformのフォーマットチェック、バリデーション、プランを実行
 - **CD**: `main`ブランチにマージされた時に実行
-  - 既にビルドされたDockerイメージにlatestタグを付け替えてGKEにデプロイ
-  - 初回デプロイ時は名前空間、ConfigMap、Secretの作成も含む
+  - `gcp/**`ディレクトリの変更があった場合のみTerraformのプランと適用を実行
+  - `environment: production`を設定し、リソース変更時に承認が必要
 
 詳細は`.cursor/rules/06-ci-cd.mdc`を参照してください。
 
-## 本番環境のインフラとの関係
-
-**インフラリポジトリで管理**: GKE、Cloud SQL、サービスアカウント、VPC Connector、Cloud BuildサービスアカウントへのIAMロール付与等
+## 管理対象
 
 **このアプリケーションリポジトリで管理**:
 - Dagsterのアセット定義（Python）
 - dbtプロジェクト（dbtモデル定義）
-- Cloud Buildの設定（`cloudbuild_ci.yaml`、`cloudbuild_cd.yaml`）
-- Kubernetes DeploymentとJobの定義（`deployments/`ディレクトリ配下）
-- データパイプライン用GCPリソース（GCSバケット、task/executionサービスアカウントへのIAMロール付与）
+- データパイプライン用GCPリソース（GCSバケット）
+
+**Terraformで管理していないリソース**:
+- GitHub Actions用のサービスアカウント（CI/CD実行用）
+- Terraform状態ファイル保存用のGCSバケット（`odp-terraform-state`）

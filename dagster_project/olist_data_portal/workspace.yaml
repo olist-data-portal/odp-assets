@@ -1,5 +1,5 @@
 load_from:
   - python_file:
       relative_path: definitions.py
-      location_name: dagster_project
+      location_name: olist_data_portal
 
