@@ -88,7 +88,7 @@ def _load_file_to_bigquery(
 
             table_exists = False
             try:
-                existing_table = bigquery_client.get_table(table_id)
+                bigquery_client.get_table(table_id)
                 table_exists = True
                 delete_query = f"""
                 DELETE FROM `{table_id}`

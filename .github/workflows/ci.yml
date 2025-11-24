@@ -89,7 +89,7 @@ jobs:
 
       - name: Install dependencies
         if: steps.check_paths.outputs.dagster == 'true'
-        run: uv sync --dev
+        run: uv sync --extra dev
 
       - name: Black Format Check
         if: steps.check_paths.outputs.dagster == 'true'
