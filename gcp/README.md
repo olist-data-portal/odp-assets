@@ -5,6 +5,7 @@
 ## 管理対象リソース
 
 - **GCSバケット**: データレイク（`${resource_prefix}-data-lake`）
+- **BigQueryデータセット**: データレイク（`data_lake`）
 
 ## Terraformで管理していないリソース
 
