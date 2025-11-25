@@ -341,6 +341,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "black", marker = "extra == 'dev'" },
     { name = "dagster" },
     { name = "dagster-postgres" },
     { name = "dagster-webserver" },
@@ -352,7 +353,9 @@ requires-dist = [
     { name = "pyarrow" },
     { name = "python-dateutil" },
     { name = "python-dotenv", specifier = ">=1.2.1" },
+    { name = "ruff", marker = "extra == 'dev'" },
 ]
+provides-extras = ["dev"]
 
 [package.metadata.requires-dev]
 dev = [

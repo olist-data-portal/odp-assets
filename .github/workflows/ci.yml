@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  terraform-check:
+    runs-on: ubuntu-latest
+    if: startsWith(github.head_ref, 'feature-')
+    defaults:
+      run:
+        working-directory: ./gcp
+    outputs:
+      completed: ${{ job.status == 'success' || job.status == 'skipped' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check if gcp directory changed
+        id: check_paths
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            gcp:
+              - 'gcp/**'
+
+      - name: Setup Terraform
+        if: steps.check_paths.outputs.gcp == 'true'
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+
+      - name: Authenticate to Google Cloud
+        if: steps.check_paths.outputs.gcp == 'true'
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Terraform Format Check
+        if: steps.check_paths.outputs.gcp == 'true'
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Init
+        if: steps.check_paths.outputs.gcp == 'true'
+        run: terraform init -upgrade=false
+
+      - name: Terraform Validate
+        if: steps.check_paths.outputs.gcp == 'true'
+        run: terraform validate
+
+      - name: Terraform Plan
+        if: steps.check_paths.outputs.gcp == 'true'
+        run: terraform plan -no-color
+
+  dagster-check:
+    runs-on: ubuntu-latest
+    if: startsWith(github.head_ref, 'feature-')
+    needs: [terraform-check]
+    defaults:
+      run:
+        working-directory: ./dagster_project
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check if dagster_project directory changed
+        id: check_paths
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            dagster:
+              - 'dagster_project/**'
+
+      - name: Setup Python
+        if: steps.check_paths.outputs.dagster == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        if: steps.check_paths.outputs.dagster == 'true'
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        if: steps.check_paths.outputs.dagster == 'true'
+        run: uv sync --extra dev
+
+      - name: Black Format Check
+        if: steps.check_paths.outputs.dagster == 'true'
+        run: uv run black --check --line-length 100 .
+
+      - name: Ruff Lint
+        if: steps.check_paths.outputs.dagster == 'true'
+        run: uv run ruff check .
+
+      - name: Verify Dagster Definitions
+        if: steps.check_paths.outputs.dagster == 'true'
+        run: uv run dagster definitions validate -w olist_data_portal/workspace.yaml
+
