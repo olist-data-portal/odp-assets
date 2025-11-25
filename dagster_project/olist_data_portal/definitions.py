@@ -1,49 +1,21 @@
 from dagster import Definitions, define_asset_job
 
-from olist_data_portal.assets import (
-    gcs_customers_to_bigquery,
-    gcs_geolocation_to_bigquery,
-    gcs_order_items_to_bigquery,
-    gcs_order_payments_to_bigquery,
-    gcs_order_reviews_to_bigquery,
-    gcs_orders_to_bigquery,
-    gcs_product_category_name_translation_to_bigquery,
-    gcs_products_to_bigquery,
-    gcs_sellers_to_bigquery,
-    kaggle_customers_to_gcs,
-    kaggle_dataset_download,
-    kaggle_geolocation_to_gcs,
-    kaggle_order_items_to_gcs,
-    kaggle_order_payments_to_gcs,
-    kaggle_order_reviews_to_gcs,
-    kaggle_orders_to_gcs,
-    kaggle_product_category_name_translation_to_gcs,
-    kaggle_products_to_gcs,
-    kaggle_sellers_to_gcs,
-)
+from olist_data_portal.assets import ALL_OLIST_FILES
+from olist_data_portal.assets.utils import get_variable_name_from_filename
 from olist_data_portal.resources import BigQueryResource, GcsResource
 
-all_assets = [
-    kaggle_dataset_download,
-    kaggle_orders_to_gcs,
-    kaggle_customers_to_gcs,
-    kaggle_geolocation_to_gcs,
-    kaggle_order_items_to_gcs,
-    kaggle_order_payments_to_gcs,
-    kaggle_order_reviews_to_gcs,
-    kaggle_products_to_gcs,
-    kaggle_sellers_to_gcs,
-    kaggle_product_category_name_translation_to_gcs,
-    gcs_orders_to_bigquery,
-    gcs_customers_to_bigquery,
-    gcs_geolocation_to_bigquery,
-    gcs_order_items_to_bigquery,
-    gcs_order_payments_to_bigquery,
-    gcs_order_reviews_to_bigquery,
-    gcs_products_to_bigquery,
-    gcs_sellers_to_bigquery,
-    gcs_product_category_name_translation_to_bigquery,
-]
+# 動的にアセットをインポート
+import olist_data_portal.assets as assets_module
+
+all_assets = []
+for filename in ALL_OLIST_FILES:
+    kaggle_var_name = get_variable_name_from_filename(filename, "kaggle")
+    gcs_var_name = get_variable_name_from_filename(filename, "gcs")
+
+    if hasattr(assets_module, kaggle_var_name):
+        all_assets.append(getattr(assets_module, kaggle_var_name))
+    if hasattr(assets_module, gcs_var_name):
+        all_assets.append(getattr(assets_module, gcs_var_name))
 
 olist_data_portal_job = define_asset_job(
     name="olist_data_portal_job",
