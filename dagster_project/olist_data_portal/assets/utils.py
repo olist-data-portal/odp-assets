@@ -81,4 +81,3 @@ def get_bigquery_asset_metadata(
         "filename": file_config.filename,
         "asset_version": "1.0",
     }
-
