@@ -16,6 +16,12 @@ dependencies = [
     "python-dotenv>=1.2.1",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "black",
+    "ruff",
+]
+
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
