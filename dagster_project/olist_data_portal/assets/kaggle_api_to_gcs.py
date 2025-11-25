@@ -40,9 +40,7 @@ def _upload_file_to_gcs(
     try:
         if file_config.is_incremental and target_date is not None:
             df = pd.read_csv(f"{dataset_path}/{filename}")
-            df["order_purchase_timestamp"] = pd.to_datetime(
-                df["order_purchase_timestamp"]
-            )
+            df["order_purchase_timestamp"] = pd.to_datetime(df["order_purchase_timestamp"])
             df_filtered = df[df["order_purchase_timestamp"] <= target_date]
 
             temp_upload_path = f"{dataset_path}/filtered_{filename}"
@@ -63,9 +61,7 @@ def _upload_file_to_gcs(
             df = pd.read_csv(file_path)
             blob = bucket.blob(gcs_blob_name)
             blob.upload_from_filename(file_path)
-            logger.info(
-                f"AUXILIARY: Uploaded all data for {filename} to {gcs_blob_name}"
-            )
+            logger.info(f"AUXILIARY: Uploaded all data for {filename} to {gcs_blob_name}")
             return {
                 "filename": filename,
                 "rows_uploaded": len(df),
@@ -103,14 +99,10 @@ def _create_kaggle_to_gcs_asset(filename: str):
                 f"retrying with force_download: {e}"
             )
             try:
-                dataset_path = kagglehub.dataset_download(
-                    config.dataset_name, force_download=True
-                )
+                dataset_path = kagglehub.dataset_download(config.dataset_name, force_download=True)
                 logger.info(f"Downloaded dataset to {dataset_path} (force download)")
             except Exception as retry_error:
-                logger.error(
-                    f"Failed to download dataset even with force_download: {retry_error}"
-                )
+                logger.error(f"Failed to download dataset even with force_download: {retry_error}")
                 raise
 
         bucket = gcs.get_bucket(config.gcs_bucket_name)

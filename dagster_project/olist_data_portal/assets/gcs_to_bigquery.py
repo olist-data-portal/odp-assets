@@ -53,9 +53,7 @@ def _load_file_to_bigquery(
         df = pd.read_csv(io.StringIO(csv_content))
 
         if file_config.is_incremental and target_date is not None:
-            df["order_purchase_timestamp"] = pd.to_datetime(
-                df["order_purchase_timestamp"]
-            )
+            df["order_purchase_timestamp"] = pd.to_datetime(df["order_purchase_timestamp"])
             df_filtered = df[df["order_purchase_timestamp"] <= target_date]
 
             if len(df_filtered) == 0:
@@ -77,9 +75,7 @@ def _load_file_to_bigquery(
                 WHERE SAFE_CAST(order_purchase_timestamp AS TIMESTAMP) <= TIMESTAMP('{target_date.isoformat()}')
                 """
                 bigquery_client.query(delete_query).result()
-                logger.info(
-                    f"Deleted existing data before {target_date.date()} from {table_name}"
-                )
+                logger.info(f"Deleted existing data before {target_date.date()} from {table_name}")
             except NotFound:
                 logger.info(f"Table {table_name} does not exist, will create new table")
 
@@ -97,9 +93,7 @@ def _load_file_to_bigquery(
                 df_filtered, table_id, job_config=job_config
             )
             job.result()
-            logger.info(
-                f"{filename} (Incremental): Loaded {len(df_filtered)} rows to {table_name}"
-            )
+            logger.info(f"{filename} (Incremental): Loaded {len(df_filtered)} rows to {table_name}")
             return {
                 "filename": filename,
                 "table_name": table_name,
@@ -114,9 +108,7 @@ def _load_file_to_bigquery(
                 autodetect=True,
             )
 
-            job = bigquery_client.load_table_from_dataframe(
-                df, table_id, job_config=job_config
-            )
+            job = bigquery_client.load_table_from_dataframe(df, table_id, job_config=job_config)
             job.result()
             logger.info(
                 f"AUXILIARY: Loaded {len(df)} rows to {table_name} (truncated and reloaded)"
@@ -148,9 +140,7 @@ def _create_gcs_to_bigquery_asset(filename: str):
         group_name="gcs_to_bigquery",
         description=file_config.description,
         deps=[kaggle_asset],
-        metadata=get_bigquery_asset_metadata(
-            file_config, table_name, table_id_placeholder
-        ),
+        metadata=get_bigquery_asset_metadata(file_config, table_name, table_id_placeholder),
     )
     def asset_func(
         config: GcsToBigqueryConfig,
@@ -167,9 +157,7 @@ def _create_gcs_to_bigquery_asset(filename: str):
         )
 
         gcs_blob_name = f"{config.gcs_prefix}/raw/{filename}"
-        table_id = (
-            f"{config.gcp_project_id}.{config.bigquery_dataset_name}.{table_name}"
-        )
+        table_id = f"{config.gcp_project_id}.{config.bigquery_dataset_name}.{table_name}"
 
         result = _load_file_to_bigquery(
             bigquery_client,

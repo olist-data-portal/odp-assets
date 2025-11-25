@@ -53,9 +53,7 @@ def get_kaggle_asset_metadata(file_config: FileConfig) -> dict:
     }
 
 
-def get_bigquery_asset_metadata(
-    file_config: FileConfig, table_name: str, table_id: str
-) -> dict:
+def get_bigquery_asset_metadata(file_config: FileConfig, table_name: str, table_id: str) -> dict:
     """BigQueryアセット用のメタデータを生成"""
     return {
         "data_domain": file_config.domain,

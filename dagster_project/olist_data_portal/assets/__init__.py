@@ -18,6 +18,6 @@ for filename in ALL_OLIST_FILES:
         globals()[gcs_var_name] = getattr(gcs_to_bigquery, gcs_var_name)
 
 # __all__を動的に生成
-__all__ = [
-    get_variable_name_from_filename(filename, "kaggle") for filename in ALL_OLIST_FILES
-] + [get_variable_name_from_filename(filename, "gcs") for filename in ALL_OLIST_FILES]
+__all__ = [get_variable_name_from_filename(filename, "kaggle") for filename in ALL_OLIST_FILES] + [
+    get_variable_name_from_filename(filename, "gcs") for filename in ALL_OLIST_FILES
+]
