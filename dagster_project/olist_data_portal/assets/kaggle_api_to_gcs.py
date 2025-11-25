@@ -3,6 +3,16 @@ import pandas as pd
 from dagster import EnvVar, asset, Config, get_dagster_logger
 from google.cloud import storage
 
+from olist_data_portal.assets.file_config import (
+    ALL_OLIST_FILES,
+    FILE_CONFIGS,
+    FileConfig,
+)
+from olist_data_portal.assets.utils import (
+    get_asset_name_from_filename,
+    get_kaggle_asset_metadata,
+    get_variable_name_from_filename,
+)
 from olist_data_portal.resources import GcsResource
 
 
@@ -16,86 +26,18 @@ class KaggleToGcsConfig(Config):
     gcp_project_id: str = EnvVar("GCP_PROJECT_ID")
 
 
-ALL_OLIST_FILES = [
-    "olist_orders_dataset.csv",
-    "olist_customers_dataset.csv",
-    "olist_geolocation_dataset.csv",
-    "olist_order_items_dataset.csv",
-    "olist_order_payments_dataset.csv",
-    "olist_order_reviews_dataset.csv",
-    "olist_products_dataset.csv",
-    "olist_sellers_dataset.csv",
-    "product_category_name_translation.csv",
-]
-
-ORDERS_FILE = "olist_orders_dataset.csv"
-
-
-def _get_asset_name_from_filename(filename: str, prefix: str = "") -> str:
-    """ファイル名からアセット名を生成"""
-    file_basename = filename.replace(".csv", "")
-    # _datasetサフィックスを削除
-    if file_basename.endswith("_dataset"):
-        file_basename = file_basename[:-8]
-    if prefix:
-        return f"{prefix}__{file_basename}"
-    return file_basename
-
-
-def _get_variable_name_from_filename(filename: str) -> str:
-    """ファイル名から変数名を生成"""
-    file_basename = filename.replace(".csv", "")
-    # _datasetサフィックスを削除
-    if file_basename.endswith("_dataset"):
-        file_basename = file_basename[:-8]
-    # olist_プレフィックスを削除
-    if file_basename.startswith("olist_"):
-        file_basename = file_basename[6:]
-    return f"kaggle_{file_basename}_to_gcs"
-
-
-@asset(
-    name="kaggle_dataset_download",
-    group_name="kaggle_to_gcs",
-    description="Kaggleデータセットをダウンロード",
-    metadata={
-        # データ資産の基本情報
-        "data_source": "kaggle",
-        "source_dataset": "olistbr/brazilian-ecommerce",
-        "data_layer": "source",
-        "data_format": "csv",
-        # ビジネス情報
-        "business_domain": "ecommerce",
-        "business_unit": "olist",
-        "country": "brazil",
-        # 技術情報
-        "download_method": "kagglehub",
-        "asset_version": "1.0",
-    },
-)
-def kaggle_dataset_download(config: KaggleToGcsConfig) -> dict:
-    """Kaggleデータセットをダウンロード"""
-    logger = get_dagster_logger()
-    dataset_path = kagglehub.dataset_download(config.dataset_name)
-    logger.info(f"Successfully downloaded dataset to {dataset_path}")
-    return {
-        "dataset_path": dataset_path,
-        "dataset_name": config.dataset_name,
-        "execution_date": config.execution_date,
-    }
-
-
 def _upload_file_to_gcs(
     dataset_path: str,
     filename: str,
     bucket: storage.Bucket,
     gcs_blob_name: str,
     target_date: pd.Timestamp | None,
+    file_config: FileConfig,
     logger,
 ) -> dict:
     """ファイルをGCSにアップロード"""
     try:
-        if filename == ORDERS_FILE and target_date is not None:
+        if file_config.is_incremental and target_date is not None:
             df = pd.read_csv(f"{dataset_path}/{filename}")
             df["order_purchase_timestamp"] = pd.to_datetime(df["order_purchase_timestamp"])
             df_filtered = df[df["order_purchase_timestamp"] <= target_date]
@@ -130,115 +72,53 @@ def _upload_file_to_gcs(
         raise
 
 
-def _get_file_description(filename: str) -> str:
-    """ファイル名から説明を生成"""
-    descriptions = {
-        "olist_orders_dataset.csv": "注文データ",
-        "olist_customers_dataset.csv": "顧客データ",
-        "olist_geolocation_dataset.csv": "地理情報データ",
-        "olist_order_items_dataset.csv": "注文アイテムデータ",
-        "olist_order_payments_dataset.csv": "注文支払いデータ",
-        "olist_order_reviews_dataset.csv": "注文レビューデータ",
-        "olist_products_dataset.csv": "商品データ",
-        "olist_sellers_dataset.csv": "販売者データ",
-        "product_category_name_translation.csv": "商品カテゴリ翻訳データ",
-    }
-    return descriptions.get(filename, f"{filename}のデータ")
-
-
-def _get_asset_metadata(filename: str) -> dict:
-    """ファイル名からアセット指向のメタデータを生成"""
-    # データドメインの抽出
-    domain_map = {
-        "olist_orders_dataset.csv": "orders",
-        "olist_customers_dataset.csv": "customers",
-        "olist_geolocation_dataset.csv": "geolocation",
-        "olist_order_items_dataset.csv": "order_items",
-        "olist_order_payments_dataset.csv": "payments",
-        "olist_order_reviews_dataset.csv": "reviews",
-        "olist_products_dataset.csv": "products",
-        "olist_sellers_dataset.csv": "sellers",
-        "product_category_name_translation.csv": "product_categories",
-    }
-
-    # データタイプの分類
-    data_type_map = {
-        "olist_orders_dataset.csv": "transactional",
-        "olist_customers_dataset.csv": "master",
-        "olist_geolocation_dataset.csv": "reference",
-        "olist_order_items_dataset.csv": "transactional",
-        "olist_order_payments_dataset.csv": "transactional",
-        "olist_order_reviews_dataset.csv": "transactional",
-        "olist_products_dataset.csv": "master",
-        "olist_sellers_dataset.csv": "master",
-        "product_category_name_translation.csv": "reference",
-    }
-
-    domain = domain_map.get(filename, "unknown")
-    data_type = data_type_map.get(filename, "unknown")
-    is_incremental = filename == ORDERS_FILE
-
-    return {
-        # データ資産の基本情報
-        "data_domain": domain,
-        "data_type": data_type,
-        "data_layer": "raw",
-        "data_format": "csv",
-        "data_source": "kaggle",
-        "source_dataset": "olistbr/brazilian-ecommerce",
-        # 処理情報
-        "processing_type": "incremental" if is_incremental else "full_load",
-        "update_frequency": "daily" if is_incremental else "on_demand",
-        # データ品質
-        "data_quality": "raw",
-        "schema_evolution": "allowed",
-        # ビジネス情報
-        "business_domain": "ecommerce",
-        "business_unit": "olist",
-        "country": "brazil",
-        # 技術情報
-        "storage_location": "gcs",
-        "storage_format": "csv",
-        "compression": "none",
-        # メタデータ情報
-        "filename": filename,
-        "asset_version": "1.0",
-    }
-
-
 def _create_kaggle_to_gcs_asset(filename: str):
     """KaggleからGCSへのアセットを生成"""
-    asset_name = _get_asset_name_from_filename(filename, "csv")
-    description = f"{_get_file_description(filename)}をKaggleからGCSにアップロード"
-    metadata = _get_asset_metadata(filename)
+    file_config = FILE_CONFIGS[filename]
+    asset_name = get_asset_name_from_filename(filename, "csv")
+    metadata = get_kaggle_asset_metadata(file_config)
 
     @asset(
         name=asset_name,
         group_name="kaggle_to_gcs",
-        description=description,
-        deps=[kaggle_dataset_download],
+        description=file_config.description,
         metadata=metadata,
     )
     def asset_func(
         config: KaggleToGcsConfig,
-        kaggle_dataset_download: dict,
         gcs: GcsResource,
     ):
         logger = get_dagster_logger()
+        try:
+            dataset_path = kagglehub.dataset_download(config.dataset_name)
+            logger.info(f"Downloaded dataset to {dataset_path}")
+        except (FileNotFoundError, OSError, ValueError) as e:
+            logger.warning(
+                f"Failed to download dataset (cache issue or unsupported archive), "
+                f"retrying with force_download: {e}"
+            )
+            try:
+                dataset_path = kagglehub.dataset_download(config.dataset_name, force_download=True)
+                logger.info(f"Downloaded dataset to {dataset_path} (force download)")
+            except Exception as retry_error:
+                logger.error(f"Failed to download dataset even with force_download: {retry_error}")
+                raise
+
         bucket = gcs.get_bucket(config.gcs_bucket_name)
         target_date = (
             pd.to_datetime(config.execution_date) + pd.Timedelta(days=1)
-            if filename == ORDERS_FILE
+            if file_config.is_incremental
             else None
         )
 
         gcs_blob_name = f"{config.gcs_prefix}/raw/{filename}"
         result = _upload_file_to_gcs(
-            kaggle_dataset_download["dataset_path"],
+            dataset_path,
             filename,
             bucket,
             gcs_blob_name,
             target_date,
+            file_config,
             logger,
         )
         result["execution_date"] = config.execution_date
@@ -248,11 +128,11 @@ def _create_kaggle_to_gcs_asset(filename: str):
 
 
 for filename in ALL_OLIST_FILES:
-    variable_name = _get_variable_name_from_filename(filename)
+    variable_name = get_variable_name_from_filename(filename, "kaggle")
     globals()[variable_name] = _create_kaggle_to_gcs_asset(filename)
 
 
 def get_kaggle_asset_by_filename(filename: str):
     """ファイル名からKaggleアセットを取得"""
-    variable_name = _get_variable_name_from_filename(filename)
+    variable_name = get_variable_name_from_filename(filename, "kaggle")
     return globals()[variable_name]
