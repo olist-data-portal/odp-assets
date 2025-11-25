@@ -30,6 +30,7 @@ code_location_name = "olist_data_portal"
 [dependency-groups]
 dev = [
     "black>=25.11.0",
+    "ruff>=0.8.0",
 ]
 
 [tool.black]
