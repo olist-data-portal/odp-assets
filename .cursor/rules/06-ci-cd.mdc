@@ -14,8 +14,18 @@ alwaysApply: true
 
 - **CIワークフロー**: `feature-`で始まるブランチから`main`へのPull Requestが作成・更新されたときに実行
   - `gcp/**`ディレクトリの変更があった場合のみTerraformのフォーマットチェック、バリデーション、プランを実行
-- **CDワークフロー**: `main`ブランチにマージされたときに実行
-  - `gcp/**`ディレクトリの変更があった場合のみTerraformのプランと適用を実行
+  - `dbt/**`ディレクトリの変更があった場合のみdbt parseを実行
+  - `dagster_project/**`ディレクトリの変更があった場合のみDagsterのフォーマットチェック、リンター、定義検証を実行
+
+- **CDワークフロー（stg環境）**: `main`ブランチにマージされたときに実行
+  - 変更されたファイルパスを検知して自動的にデプロイ
+  - `gcp/**`ディレクトリの変更があった場合、Terraformのプランと適用を実行
+  - `dbt/**`ディレクトリの変更があった場合、dbt runを実行
+  - `dagster_project/**`または`dbt/**`ディレクトリの変更があった場合、Dagsterジョブを実行
+  - `environment: staging`を設定
+
+- **CDワークフロー（prd環境）**: 手動トリガー（workflow_dispatch）で実行
+  - Terraform、dbt、Dagsterのデプロイを個別に選択可能
   - `environment: production`を設定し、リソース変更時に承認が必要
 
 ## 命名規約

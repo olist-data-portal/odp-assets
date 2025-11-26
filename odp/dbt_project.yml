@@ -1,0 +1,53 @@
+name: "olist_data_portal"
+version: "1.0.0"
+config-version: 2
+
+profile: "olist_data_portal"
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  olist_data_portal:
+    staging:
+      +schema: >-
+        {%- set env = env_var('DBT_ENV', 'local') -%}
+        {%- if env == 'prd' -%}
+        staging
+        {%- else -%}
+        odp-{{ env }}-staging
+        {%- endif -%}
+    intermediate:
+      +schema: >-
+        {%- set env = env_var('DBT_ENV', 'local') -%}
+        {%- if env == 'prd' -%}
+        intermediate
+        {%- else -%}
+        odp-{{ env }}-intermediate
+        {%- endif -%}
+    warehouse:
+      +schema: >-
+        {%- set env = env_var('DBT_ENV', 'local') -%}
+        {%- if env == 'prd' -%}
+        warehouse
+        {%- else -%}
+        odp-{{ env }}-warehouse
+        {%- endif -%}
+    mart:
+      +schema: >-
+        {%- set env = env_var('DBT_ENV', 'local') -%}
+        {%- if env == 'prd' -%}
+        mart
+        {%- else -%}
+        odp-{{ env }}-mart
+        {%- endif -%}
+

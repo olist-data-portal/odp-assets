@@ -26,7 +26,7 @@ def get_variable_name_from_filename(filename: str, prefix: str) -> str:
 def get_table_name(filename: str) -> str:
     """ファイル名からBigQueryテーブル名を生成"""
     file_basename = filename.replace(".csv", "")
-    return f"raw__{file_basename}"
+    return file_basename
 
 
 def get_kaggle_asset_metadata(file_config: FileConfig) -> dict:

@@ -27,24 +27,31 @@ alwaysApply: true
   - `int_`: 中間モデル
   - `wh_`: ウェアハウスモデル
   - `mart_`: マートモデル
-- **データセット名**: `odp-{env}-{ディレクトリ}`形式を使用（例: `odp-local-staging`, `odp-dev-mart`, `odp-prd-mart`）
+- **データセット名**: 環境に応じて自動生成
+  - local環境: `odp-local-{username}-{層名}`（`profiles.yml`の`# username:`から取得）
+  - stg環境: `odp-stg-{層名}`
+  - prd環境: `{層名}`のみ（プレフィックスなし）
 
 ## 環境ごとの設定
 
 ### local環境
 
-- `profiles.yml`でローカル開発用の設定を定義
-- BigQueryプロジェクトはprdと同じものを使用（データは共有）
+- `profiles.local.yml`の`# username:`にユーザー名を設定（例: `# username: yourname`）
+- `profiles.local.yml.example`をコピーして作成
+- デフォルトでユーザー名を含むデータセットを使用（チーム開発で環境を分離）
+- BigQueryプロジェクトはprdと同じものを使用
 
-### dev環境
+### stg環境
 
-- 環境変数またはSecret ManagerからBigQuery接続情報を取得
-- `feature-`ブランチがリモートにプッシュされた時にCI/CDで反映
+- 環境変数: `DBT_TARGET=stg`, `DBT_ENV=stg`
+- feature-ブランチにpush時にCI/CDで使用
+- manifest.jsonはGCSで管理（`dbt-manifests/stg/manifest.json`）
 
 ### prd環境
 
-- 環境変数またはSecret ManagerからBigQuery接続情報を取得
-- `main`ブランチにマージされた時にCI/CDで反映
+- 環境変数: `DBT_TARGET=prd`, `DBT_ENV=prd`
+- mainブランチにマージ時にCI/CDで使用
+- manifest.jsonはGCSで管理（`dbt-manifests/prd/manifest.json`）
 
 ## セキュリティ
 

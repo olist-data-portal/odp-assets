@@ -28,12 +28,17 @@ Dagsterでオーケストレーションするデータパイプラインのア�
    - `.env`ファイルは`.devcontainer/docker-compose.yml`の`env_file`セクションで自動的に読み込まれます
    - `.env`ファイルはgit管理に含まれません（`.gitignore`で除外されています）
 
-3. **GCP認証（初回のみ）**
+3. **dbt設定（チーム開発用）**
+   - `odp/profiles.local.yml.example`をコピーして`odp/profiles.local.yml`を作成
+   - `# username: yourname`を自分のユーザー名に変更
+   - `profiles.local.yml`はgit管理に含まれません
+
+4. **GCP認証（初回のみ）**
    - DevContainer起動時に`init.sh`が自動的に`gcloud auth application-default login --no-launch-browser`を実行します
    - 表示されたURLにアクセスして認証コードを入力してください
    - 既に認証済みの場合はスキップされます
 
-4. **Dagsterを起動**
+5. **Dagsterを起動**
 
 ```bash
 cd dagster_project
@@ -48,13 +53,49 @@ uv run dagster dev
 - 依存関係は`postCreateCommand`で自動的にインストールされます（`uv sync --dev`）
 - 環境変数はホストで設定すると、DevContainer内で自動的に読み込まれます
 
+## dbt環境
+
+dbtは環境変数で環境を切り替えられます。
+
+- **local環境**: `cd dagster_project && uv run dagster dev`
+  - manifest.jsonはローカルで管理
+- **stg環境**: `DBT_TARGET=stg DBT_ENV=stg cd dagster_project && uv run dagster dev`
+  - manifest.jsonはGCSで管理（`dbt-manifests/stg/manifest.json`）
+- **prd環境**: `DBT_TARGET=prd DBT_ENV=prd cd dagster_project && uv run dagster dev`
+  - manifest.jsonはGCSで管理（`dbt-manifests/prd/manifest.json`）
+
+**データセット名**: local/stgは`odp-{環境名}-{層名}`、prdは`{層名}`のみ
+
 ## CI/CD
 
-- **CI**: `feature-`ブランチから`main`へのPull Request時に実行
-  - `gcp/**`ディレクトリの変更があった場合のみTerraformのフォーマットチェック、バリデーション、プランを実行
-- **CD**: `main`ブランチにマージされた時に実行
-  - `gcp/**`ディレクトリの変更があった場合のみTerraformのプランと適用を実行
-  - `environment: production`を設定し、リソース変更時に承認が必要
+### CI（Pull Request時）
+
+`feature-`ブランチから`main`へのPull Request時に実行：
+
+- **Terraformチェック**: `gcp/**`ディレクトリの変更があった場合のみ実行
+  - フォーマットチェック、バリデーション、プラン
+- **dbtチェック**: `odp/**`ディレクトリの変更があった場合のみ実行
+  - dbt parse（構文チェック）
+- **Dagsterチェック**: `dagster_project/**`ディレクトリの変更があった場合のみ実行
+  - Blackフォーマットチェック、Ruffリンター、Dagster定義の検証
+
+### CD（デプロイ）
+
+#### Staging環境へのデプロイ
+
+`main`ブランチにマージされた時に自動実行：
+
+- 変更されたファイルパスを検知して自動的にデプロイ
+- **Terraform**: `gcp/**`ディレクトリの変更があった場合、プランと適用を実行
+- **dbt**: `odp/**`ディレクトリの変更があった場合、`dbt run`を実行
+- **Dagster**: `dagster_project/**`または`odp/**`ディレクトリの変更があった場合、ジョブを実行
+
+#### Production環境へのデプロイ
+
+手動トリガー（GitHub Actionsの「Run workflow」）で実行：
+
+- Terraform、dbt、Dagsterのデプロイを個別に選択可能
+- `environment: production`を設定し、リソース変更時に承認が必要
 
 詳細は`.cursor/rules/06-ci-cd.mdc`を参照してください。
 

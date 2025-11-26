@@ -77,4 +77,28 @@ dagster_project/olist_data_portal/.logs_queue/  # Dagster自動生成ディレ�
 *.backup
 *.tfplan
 .terraform/
+**/.terraform/*
+crash.log
+crash.*.log
+*.tfvars
+*.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# dbt
+dbt/target/
+odp/target/
+dbt/dbt_packages/
+dbt/logs/
+dbt/.user.yml
+dbt/profiles.local.yml
+# partial_parse.msgpackはgit管理から除外
+**/partial_parse.msgpack
+**/target/**/partial_parse.msgpack
+# profiles.ymlはgit管理に含める（stg/prd用）
+# local環境ではprofiles.local.ymlがprofiles.ymlとしてコピーされる
 

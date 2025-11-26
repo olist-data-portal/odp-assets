@@ -15,6 +15,7 @@ alwaysApply: true
 - **アセット定義**: `@asset`デコレータで依存関係を明示的に定義
 - **エラーハンドリング**: API呼び出しやデータ処理で適切にエラーハンドリングを行う
 - **リトライロジック**: 一時的なエラーの場合はリトライロジックを実装
+- **dbt manifest管理**: stg/prd環境ではmanifest.jsonをGCSで管理（`dbt-manifests/{環境名}/manifest.json`）
 
 ## 命名規約
 
