@@ -1,3 +1,6 @@
+import shutil
+from pathlib import Path
+
 import kagglehub
 import pandas as pd
 from dagster import EnvVar, asset, Config, get_dagster_logger
@@ -89,19 +92,36 @@ def _create_kaggle_to_gcs_asset(filename: str):
         gcs: GcsResource,
     ):
         logger = get_dagster_logger()
+
+        def _clear_kaggle_cache(dataset_name: str) -> None:
+            """Kaggleキャッシュをクリア"""
+            try:
+                # dataset_nameは "owner/dataset" 形式（例: "olistbr/brazilian-ecommerce"）
+                owner, dataset = dataset_name.split("/", 1)
+                cache_dir = Path.home() / ".cache" / "kagglehub" / "datasets" / owner / dataset
+                if cache_dir.exists():
+                    logger.info(f"Clearing Kaggle cache: {cache_dir}")
+                    shutil.rmtree(cache_dir)
+                    logger.info(f"Cleared Kaggle cache: {cache_dir}")
+            except Exception as e:
+                logger.warning(f"Failed to clear Kaggle cache: {e}")
+
         try:
             dataset_path = kagglehub.dataset_download(config.dataset_name)
             logger.info(f"Downloaded dataset to {dataset_path}")
         except (FileNotFoundError, OSError, ValueError) as e:
             logger.warning(
                 f"Failed to download dataset (cache issue or unsupported archive), "
-                f"retrying with force_download: {e}"
+                f"clearing cache and retrying: {e}"
             )
+            _clear_kaggle_cache(config.dataset_name)
             try:
                 dataset_path = kagglehub.dataset_download(config.dataset_name, force_download=True)
-                logger.info(f"Downloaded dataset to {dataset_path} (force download)")
+                logger.info(
+                    f"Downloaded dataset to {dataset_path} (force download after cache clear)"
+                )
             except Exception as retry_error:
-                logger.error(f"Failed to download dataset even with force_download: {retry_error}")
+                logger.error(f"Failed to download dataset even after cache clear: {retry_error}")
                 raise
 
         bucket = gcs.get_bucket(config.gcs_bucket_name)

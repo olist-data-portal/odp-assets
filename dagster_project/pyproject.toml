@@ -6,6 +6,8 @@ dependencies = [
     "dagster",
     "dagster-postgres",
     "dagster-webserver",
+    "dagster-dbt",
+    "dbt-bigquery",
     "kaggle",
     "kagglehub",
     "google-cloud-storage",

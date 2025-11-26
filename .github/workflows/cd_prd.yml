@@ -1,0 +1,155 @@
+name: Deploy to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_dbt:
+        description: 'Deploy dbt models'
+        required: false
+        default: 'false'
+        type: boolean
+      full_refresh:
+        description: 'Full refresh for incremental models'
+        required: false
+        default: 'false'
+        type: boolean
+      deploy_dagster:
+        description: 'Deploy Dagster assets'
+        required: false
+        default: 'false'
+        type: boolean
+      deploy_terraform:
+        description: 'Deploy Terraform resources'
+        required: false
+        default: 'false'
+        type: boolean
+      base_commit:
+        description: 'Base commit to compare changes (default: previous tag or HEAD~1)'
+        required: false
+        default: ''
+        type: string
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      dbt_models: ${{ steps.dbt_models.outputs.models }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract changed dbt models
+        if: inputs.deploy_dbt == true
+        id: dbt_models
+        run: |
+          # Determine base commit for comparison
+          BASE_COMMIT="${{ inputs.base_commit }}"
+          if [ -z "$BASE_COMMIT" ]; then
+            # Try to find the latest tag, fallback to HEAD~1
+            LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+            if [ -n "$LATEST_TAG" ]; then
+              BASE_COMMIT="$LATEST_TAG"
+            else
+              BASE_COMMIT="HEAD~1"
+            fi
+          fi
+          
+          # Get changed files
+          CHANGED_FILES=$(git diff --name-only $BASE_COMMIT HEAD -- 'odp/models/**/*.sql' || echo "")
+          MODELS=""
+          if [ -n "$CHANGED_FILES" ]; then
+            for file in $CHANGED_FILES; do
+              # Extract model name from file path
+              model=$(basename "$file" .sql)
+              if [ -n "$MODELS" ]; then
+                MODELS="$MODELS,$model"
+              else
+                MODELS="$model"
+              fi
+            done
+          fi
+          echo "models=$MODELS" >> $GITHUB_OUTPUT
+          echo "Base commit: $BASE_COMMIT"
+          echo "Changed models: $MODELS"
+
+  deploy-prd:
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    environment: production
+    defaults:
+      run:
+        working-directory: ./dagster_project
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Setup Terraform
+        if: inputs.deploy_terraform == true
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+
+      - name: Deploy Terraform
+        if: inputs.deploy_terraform == true
+        defaults:
+          run:
+            working-directory: ./gcp
+        run: |
+          terraform init -upgrade=false
+          terraform plan -no-color -out=tfplan
+          terraform apply -auto-approve -no-color tfplan
+
+      - name: Run dbt
+        if: inputs.deploy_dbt == true
+        env:
+          DBT_TARGET: prd
+          DBT_ENV: prd
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID || 'olist-data-portal' }}
+          GCS_BUCKET_NAME: ${{ secrets.GCS_BUCKET_NAME || 'odp-data-lake' }}
+        run: |
+          cd ../odp
+          CHANGED_MODELS="${{ needs.detect-changes.outputs.dbt_models }}"
+          FULL_REFRESH_FLAG=""
+          if [ "${{ inputs.full_refresh }}" == "true" ]; then
+            FULL_REFRESH_FLAG="--full-refresh"
+            echo "Full refresh enabled for incremental models"
+          fi
+          if [ -n "$CHANGED_MODELS" ]; then
+            echo "Running changed models and their dependents: $CHANGED_MODELS"
+            uv run --directory ../dagster_project dbt run --select "$CHANGED_MODELS+" $FULL_REFRESH_FLAG --profiles-dir . --project-dir .
+          else
+            echo "No specific models changed, running all models"
+            uv run --directory ../dagster_project dbt run $FULL_REFRESH_FLAG --profiles-dir . --project-dir .
+          fi
+
+      - name: Run Dagster Assets
+        if: inputs.deploy_dagster == true
+        env:
+          DBT_TARGET: prd
+          DBT_ENV: prd
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID || 'olist-data-portal' }}
+          GCS_BUCKET_NAME: ${{ secrets.GCS_BUCKET_NAME || 'odp-data-lake' }}
+        run: |
+          uv run dagster job execute -j olist_data_portal_job -w olist_data_portal/workspace.yaml
+

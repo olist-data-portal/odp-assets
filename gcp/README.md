@@ -5,6 +5,8 @@
 ## 管理対象リソース
 
 - **GCSバケット**: データレイク（`${resource_prefix}-data-lake`）
+  - データレイク用のGCSバケット
+  - dbt manifest.jsonの保存先（`dbt-manifests/{環境名}/manifest.json`）
 - **BigQueryデータセット**: データレイク（`data_lake`）
 
 ## Terraformで管理していないリソース
