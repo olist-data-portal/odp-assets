@@ -91,9 +91,7 @@ jobs:
 
       - name: Deploy Terraform
         if: needs.detect-changes.outputs.terraform == 'true'
-        defaults:
-          run:
-            working-directory: ./gcp
+        working-directory: ./gcp
         run: |
           terraform init -upgrade=false
           terraform plan -no-color -out=tfplan
