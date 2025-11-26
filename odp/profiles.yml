@@ -15,4 +15,26 @@ olist_data_portal:
       timeout_seconds: 300
       job_retry_deadline_seconds: 600
       job_retries: 1
+    stg:
+      type: bigquery
+      method: oauth
+      project: "{{ env_var('GCP_PROJECT_ID', 'olist-data-portal') }}"
+      dataset: "{{ env_var('BIGQUERY_DATASET', 'data_lake') }}"
+      location: "asia-northeast1"
+      priority: interactive
+      maximum_bytes_billed: 1000000000
+      timeout_seconds: 300
+      job_retry_deadline_seconds: 600
+      job_retries: 1
+    prd:
+      type: bigquery
+      method: oauth
+      project: "{{ env_var('GCP_PROJECT_ID', 'olist-data-portal') }}"
+      dataset: "{{ env_var('BIGQUERY_DATASET', 'data_lake') }}"
+      location: "asia-northeast1"
+      priority: interactive
+      maximum_bytes_billed: 1000000000
+      timeout_seconds: 300
+      job_retry_deadline_seconds: 600
+      job_retries: 1
 

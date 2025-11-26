@@ -91,6 +91,7 @@ if dbt_target in ["stg", "prd"]:
     gcs_manifest_path = f"dbt-manifests/{dbt_target}/manifest.json"
 
     try:
+        # GCSアクセスを試行（認証情報が利用可能な場合のみ）
         bucket = gcs_resource.get_bucket(gcs_bucket_name)
         blob = bucket.blob(gcs_manifest_path)
 
@@ -101,12 +102,15 @@ if dbt_target in ["stg", "prd"]:
             dbt_parse_invocation = dbt_resource.cli(["parse"]).wait()
             if dbt_parse_invocation.is_successful():
                 manifest_json = dbt_parse_invocation.get_artifact("manifest.json")
-                # GCSに保存
-                blob.upload_from_string(
-                    json.dumps(manifest_json, indent=2), content_type="application/json"
-                )
+                # GCSに保存（認証情報が利用可能な場合のみ）
+                try:
+                    blob.upload_from_string(
+                        json.dumps(manifest_json, indent=2), content_type="application/json"
+                    )
+                except Exception:
+                    pass
     except Exception:
-        # GCSアクセスに失敗した場合、ローカルでparseを実行
+        # GCSアクセスに失敗した場合（認証情報が設定されていない等）、ローカルでparseを実行
         dbt_parse_invocation = dbt_resource.cli(["parse"]).wait()
         if dbt_parse_invocation.is_successful():
             manifest_json = dbt_parse_invocation.get_artifact("manifest.json")
@@ -128,7 +132,7 @@ def dbt_olist_assets(context: AssetExecutionContext):
 
     if dbt_target in ["stg", "prd"]:
         try:
-            # 実行後のmanifest.jsonをGCSに保存
+            # 実行後のmanifest.jsonをGCSに保存（認証情報が利用可能な場合のみ）
             dbt_parse_invocation = dbt_resource.cli(["parse"]).wait()
             if dbt_parse_invocation.is_successful():
                 updated_manifest = dbt_parse_invocation.get_artifact("manifest.json")
@@ -141,6 +145,7 @@ def dbt_olist_assets(context: AssetExecutionContext):
                     content_type="application/json",
                 )
         except Exception:
+            # GCSアクセスに失敗した場合（認証情報が設定されていない等）、スキップ
             pass
 
 
