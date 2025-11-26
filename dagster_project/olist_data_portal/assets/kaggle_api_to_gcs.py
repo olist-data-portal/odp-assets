@@ -1,4 +1,3 @@
-import os
 import shutil
 from pathlib import Path
 
@@ -93,7 +92,7 @@ def _create_kaggle_to_gcs_asset(filename: str):
         gcs: GcsResource,
     ):
         logger = get_dagster_logger()
-        
+
         def _clear_kaggle_cache(dataset_name: str) -> None:
             """Kaggleキャッシュをクリア"""
             try:
@@ -106,7 +105,7 @@ def _create_kaggle_to_gcs_asset(filename: str):
                     logger.info(f"Cleared Kaggle cache: {cache_dir}")
             except Exception as e:
                 logger.warning(f"Failed to clear Kaggle cache: {e}")
-        
+
         try:
             dataset_path = kagglehub.dataset_download(config.dataset_name)
             logger.info(f"Downloaded dataset to {dataset_path}")
@@ -118,7 +117,9 @@ def _create_kaggle_to_gcs_asset(filename: str):
             _clear_kaggle_cache(config.dataset_name)
             try:
                 dataset_path = kagglehub.dataset_download(config.dataset_name, force_download=True)
-                logger.info(f"Downloaded dataset to {dataset_path} (force download after cache clear)")
+                logger.info(
+                    f"Downloaded dataset to {dataset_path} (force download after cache clear)"
+                )
             except Exception as retry_error:
                 logger.error(f"Failed to download dataset even after cache clear: {retry_error}")
                 raise
