@@ -61,7 +61,7 @@ resource "google_bigquery_dataset" "odp_mart" {
 resource "google_bigquery_dataset" "odp_stg_staging" {
   count = var.environment != "prd" ? 1 : 0
 
-  dataset_id = "odp-stg-staging"
+  dataset_id = "odp_stg_staging"
   location   = "asia-northeast1"
   project    = var.project_id
 
@@ -73,7 +73,7 @@ resource "google_bigquery_dataset" "odp_stg_staging" {
 resource "google_bigquery_dataset" "odp_stg_intermediate" {
   count = var.environment != "prd" ? 1 : 0
 
-  dataset_id = "odp-stg-intermediate"
+  dataset_id = "odp_stg_intermediate"
   location   = "asia-northeast1"
   project    = var.project_id
 
@@ -85,7 +85,7 @@ resource "google_bigquery_dataset" "odp_stg_intermediate" {
 resource "google_bigquery_dataset" "odp_stg_warehouse" {
   count = var.environment != "prd" ? 1 : 0
 
-  dataset_id = "odp-stg-warehouse"
+  dataset_id = "odp_stg_warehouse"
   location   = "asia-northeast1"
   project    = var.project_id
 
@@ -97,7 +97,7 @@ resource "google_bigquery_dataset" "odp_stg_warehouse" {
 resource "google_bigquery_dataset" "odp_stg_mart" {
   count = var.environment != "prd" ? 1 : 0
 
-  dataset_id = "odp-stg-mart"
+  dataset_id = "odp_stg_mart"
   location   = "asia-northeast1"
   project    = var.project_id
 

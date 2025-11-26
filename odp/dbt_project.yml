@@ -24,7 +24,7 @@ models:
         {%- if env == 'prd' -%}
         staging
         {%- else -%}
-        odp-{{ env }}-staging
+        odp_{{ env }}_staging
         {%- endif -%}
     intermediate:
       +schema: >-
@@ -32,7 +32,7 @@ models:
         {%- if env == 'prd' -%}
         intermediate
         {%- else -%}
-        odp-{{ env }}-intermediate
+        odp_{{ env }}_intermediate
         {%- endif -%}
     warehouse:
       +schema: >-
@@ -40,7 +40,7 @@ models:
         {%- if env == 'prd' -%}
         warehouse
         {%- else -%}
-        odp-{{ env }}-warehouse
+        odp_{{ env }}_warehouse
         {%- endif -%}
     mart:
       +schema: >-
@@ -48,6 +48,6 @@ models:
         {%- if env == 'prd' -%}
         mart
         {%- else -%}
-        odp-{{ env }}-mart
+        odp_{{ env }}_mart
         {%- endif -%}
 
